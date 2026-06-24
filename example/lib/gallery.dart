@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'demos/activity_indicator_demo.dart';
 import 'demos/button_demo.dart';
 import 'demos/container_demo.dart';
+import 'demos/icon_button_demo.dart';
 import 'demos/progress_view_demo.dart';
 import 'demos/switch_demo.dart';
 
@@ -18,6 +19,7 @@ final List<DemoEntry> demos = <DemoEntry>[
   DemoEntry('ActivityIndicator', () => buildActivityIndicatorDemo()),
   DemoEntry('Button', () => const ButtonDemo()),
   DemoEntry('Container', () => buildContainerDemo()),
+  DemoEntry('IconButton', () => const IconButtonDemo()),
   DemoEntry('ProgressView', () => buildProgressViewDemo()),
   DemoEntry('Switch', () => const SwitchDemo()),
 ];

@@ -35,6 +35,23 @@ void main() {
     expect(find.text('Hi'), findsOneWidget);
   });
 
+  testWidgets('LiquidGlassIconButton fallback fires onPressed',
+      (WidgetTester tester) async {
+    int taps = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: LiquidGlassIconButton(
+            sfSymbol: 'heart',
+            onPressed: () => taps++,
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byType(LiquidGlassIconButton));
+    expect(taps, 1);
+  });
+
   testWidgets('LiquidGlassContainer fallback renders', (WidgetTester tester) async {
     await tester.pumpWidget(
       const MaterialApp(
@@ -60,6 +77,41 @@ void main() {
       ),
     );
     expect(find.byType(LiquidGlassActivityIndicator), findsOneWidget);
+  });
+
+  testWidgets('LiquidGlassSlider fallback value changes', (WidgetTester tester) async {
+    double value = 0.3;
+    await tester.pumpWidget(
+      StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) {
+          return MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: LiquidGlassSlider(
+                  value: value,
+                  onChanged: (double v) => setState(() => value = v),
+                  min: 0,
+                  max: 1,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+    await tester.tap(find.byType(LiquidGlassSlider));
+    expect(find.byType(LiquidGlassSlider), findsOneWidget);
+  });
+
+  testWidgets('LiquidGlassStepper fallback renders', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: LiquidGlassStepper(value: 5, onChanged: (int v) {}),
+        ),
+      ),
+    );
+    expect(find.text('5'), findsOneWidget);
   });
 
   testWidgets('LiquidGlassProgressView fallback renders',
