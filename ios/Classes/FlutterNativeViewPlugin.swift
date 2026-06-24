@@ -52,7 +52,8 @@ public class FlutterNativeViewPlugin: NSObject, FlutterPlugin {
     registrar.register(
       GlassStepperViewFactory(messenger: messenger), withId: stepperViewType)
     registrar.register(
-      GlassTabBarViewFactory(messenger: messenger), withId: tabBarViewType)
+      GlassTabBarViewFactory(messenger: messenger, hostViewController: registrar.viewController),
+      withId: tabBarViewType)
     registrar.register(
       GlassToggleViewFactory(messenger: messenger), withId: toggleViewType)
     registrar.register(

@@ -14,37 +14,40 @@ class TabBarDemo extends StatefulWidget {
 class _TabBarDemoState extends State<TabBarDemo> {
   int _index = 0;
   int _searchTaps = 0;
+  final ScrollController _scroll = ScrollController();
 
   static const List<String> _labels = ['Today', 'News+', 'Sports', 'Audio'];
 
   @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Fill the page so the bar can pin to the bottom like a real tab bar.
     return SizedBox.expand(
       child: Stack(
         children: [
-          // Page content for the selected tab.
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _labels[_index],
-                  style: const TextStyle(color: Colors.white, fontSize: 28),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Search tapped: $_searchTaps',
-                  style: const TextStyle(color: Colors.white54),
-                ),
-              ],
+          // Scrollable content — scroll down to minimize the bar, up to expand.
+          ListView.builder(
+            controller: _scroll,
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 140),
+            itemCount: 40,
+            itemBuilder: (_, i) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                '${_labels[_index]}  ·  row $i'
+                '${i == 0 ? '   (search tapped: $_searchTaps)' : ''}',
+                style: const TextStyle(color: Colors.white70, fontSize: 16),
+              ),
             ),
           ),
-          // Floating glass tab bar pinned to the bottom.
+          // Native tab bar pinned to the bottom edge.
           Positioned(
-            left: 8,
-            right: 8,
-            bottom: 12,
+            left: 0,
+            right: 0,
+            bottom: 0,
             child: LiquidGlassTabBar(
               items: const [
                 TabItem(label: 'Today', sfSymbol: 'newspaper'),
@@ -57,6 +60,7 @@ class _TabBarDemoState extends State<TabBarDemo> {
               accessorySymbol: 'magnifyingglass',
               onAccessoryTap: () => setState(() => _searchTaps++),
               tint: const Color(0xFFFF375F),
+              scrollController: _scroll,
             ),
           ),
         ],

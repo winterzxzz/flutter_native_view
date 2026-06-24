@@ -104,8 +104,8 @@ struct GlassSegmentedRoot: View {
   var body: some View {
     if #available(iOS 26.0, *) {
       Picker("", selection: $model.selectedIndex) {
-        ForEach(Array(model.segments.enumerated()), id: \.offset) { _, label in
-          Text(label).tag(Int?.none)
+        ForEach(Array(model.segments.enumerated()), id: \.offset) { index, label in
+          Text(label).tag(index)
         }
       }
       .pickerStyle(.segmented)
@@ -115,8 +115,8 @@ struct GlassSegmentedRoot: View {
       }
     } else {
       Picker("", selection: $model.selectedIndex) {
-        ForEach(Array(model.segments.enumerated()), id: \.offset) { _, label in
-          Text(label).tag(Int?.none)
+        ForEach(Array(model.segments.enumerated()), id: \.offset) { index, label in
+          Text(label).tag(index)
         }
       }
       .pickerStyle(.segmented)
