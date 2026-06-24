@@ -17,7 +17,10 @@ material looks like the system glass. Concept follows
 
 | Widget | Notes |
 | --- | --- |
+| `LiquidGlassActivityIndicator` | Native SwiftUI `ProgressView(.circular)`. Fixed size. |
 | `LiquidGlassButton` / `.heading` | Native button; `label` rendered in SwiftUI. Auto-sizes via an intrinsic-size handshake. |
+| `LiquidGlassContainer` | Decorative glass panel. Stack Flutter content on top. |
+| `LiquidGlassProgressView` | Native linear `ProgressView`. Parent width, fixed height. |
 | `LiquidGlassSwitch` | Native SwiftUI `Toggle`; state bridged back to Dart. |
 
 ## Usage

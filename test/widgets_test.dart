@@ -35,6 +35,45 @@ void main() {
     expect(find.text('Hi'), findsOneWidget);
   });
 
+  testWidgets('LiquidGlassContainer fallback renders', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Center(
+          child: SizedBox(
+            width: 200,
+            height: 200,
+            child: LiquidGlassContainer(),
+          ),
+        ),
+      ),
+    );
+    expect(find.byType(LiquidGlassContainer), findsOneWidget);
+  });
+
+  testWidgets('LiquidGlassActivityIndicator fallback renders',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Center(
+          child: LiquidGlassActivityIndicator(size: 48),
+        ),
+      ),
+    );
+    expect(find.byType(LiquidGlassActivityIndicator), findsOneWidget);
+  });
+
+  testWidgets('LiquidGlassProgressView fallback renders',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Center(
+          child: LiquidGlassProgressView(value: 0.5),
+        ),
+      ),
+    );
+    expect(find.byType(LiquidGlassProgressView), findsOneWidget);
+  });
+
   testWidgets('LiquidGlassSwitch fallback toggles', (WidgetTester tester) async {
     bool value = false;
     await tester.pumpWidget(
