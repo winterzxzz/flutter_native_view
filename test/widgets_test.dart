@@ -62,11 +62,13 @@ void main() {
   testWidgets('LiquidGlassMenu fallback renders', (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
-        home: Center(
-          child: LiquidGlassMenu(
-            label: 'Menu',
-            items: const [MenuItem(id: 'a', title: 'A')],
-            onSelected: (_) {},
+        home: Scaffold(
+          body: Center(
+            child: LiquidGlassMenu(
+              label: 'Menu',
+              items: const [MenuItem(id: 'a', title: 'A')],
+              onSelected: (_) {},
+            ),
           ),
         ),
       ),
