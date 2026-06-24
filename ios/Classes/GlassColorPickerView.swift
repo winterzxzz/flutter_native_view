@@ -100,7 +100,7 @@ struct GlassColorPickerRoot: View {
 
   var body: some View {
     if #available(iOS 26.0, *) {
-      ColorPicker(selection: Binding(get: { Color(uiColor: model.selectedColor) }, set: {
+      ColorPicker("", selection: Binding(get: { Color(uiColor: model.selectedColor) }, set: {
         model.selectedColor = UIColor($0)
         var r: CGFloat = 0; var g: CGFloat = 0; var b: CGFloat = 0; var a: CGFloat = 0
         model.selectedColor.getRed(&r, green: &g, blue: &b, alpha: &a)
@@ -110,7 +110,7 @@ struct GlassColorPickerRoot: View {
         .labelsHidden()
         .glassEffect(Glass.regular.interactive(), in: Capsule())
     } else {
-      ColorPicker(selection: Binding(get: { Color(uiColor: model.selectedColor) }, set: {
+      ColorPicker("", selection: Binding(get: { Color(uiColor: model.selectedColor) }, set: {
         model.selectedColor = UIColor($0)
         var r: CGFloat = 0; var g: CGFloat = 0; var b: CGFloat = 0; var a: CGFloat = 0
         model.selectedColor.getRed(&r, green: &g, blue: &b, alpha: &a)

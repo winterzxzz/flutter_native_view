@@ -100,15 +100,6 @@ final class GlassDatePickerModel: ObservableObject {
 }
 
 @available(iOS 16.0, *)
-private func displayMode(from mode: String) -> DatePicker<Text>.DisplayMode {
-  switch mode {
-  case "time": return .time
-  case "dateAndTime": return .dateAndTime
-  default: return .date
-  }
-}
-
-@available(iOS 16.0, *)
 struct GlassDatePickerRoot: View {
   @ObservedObject var model: GlassDatePickerModel
 

@@ -107,8 +107,8 @@ struct GlassStepperRoot: View {
 
   private var stepperContent: some View {
     Stepper(value: Binding(get: { model.value }, set: { model.value = $0; model.onChanged?($0) }),
-            step: model.step,
-            in: (model.min ?? Int.min)...(model.max ?? Int.max)) {
+            in: (model.min ?? Int.min)...(model.max ?? Int.max),
+            step: model.step) {
       Text("\(model.value)")
     }
     .fixedSize()

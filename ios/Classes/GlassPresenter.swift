@@ -30,6 +30,7 @@ final class GlassPresenter: NSObject {
 
   private func presentSheet(args: [String: Any], result: @escaping FlutterResult) {
     guard let vc = viewController else { result(nil); return }
+    guard #available(iOS 16.0, *) else { result(nil); return }
     let title = args["title"] as? String ?? ""
     let sheetView = GlassSheetRoot(
       title: title,
@@ -41,7 +42,7 @@ final class GlassPresenter: NSObject {
     let hosting = UIHostingController(rootView: sheetView)
     hosting.view.backgroundColor = .clear
     hosting.modalPresentationStyle = .pageSheet
-    if let sheet = hosting.sheetPresentationController {
+    if #available(iOS 15.0, *), let sheet = hosting.sheetPresentationController {
       sheet.detents = [.medium(), .large()]
       sheet.prefersGrabberVisible = true
     }
@@ -69,6 +70,7 @@ final class GlassPresenter: NSObject {
 
   private func presentPopover(args: [String: Any], result: @escaping FlutterResult) {
     guard let vc = viewController else { result(nil); return }
+    guard #available(iOS 16.0, *) else { result(nil); return }
     let title = args["title"] as? String ?? ""
     let popoverView = GlassPopoverRoot(
       title: title,

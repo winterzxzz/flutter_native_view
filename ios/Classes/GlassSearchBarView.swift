@@ -93,7 +93,7 @@ struct GlassSearchBarRoot: View {
         .foregroundColor(.secondary)
       TextField(model.placeholder, text: $model.text)
         .onSubmit { model.onSubmitted?(model.text) }
-        .onChange(of: model.text) { _, newValue in
+        .onChange(of: model.text) { newValue in
           model.onChanged?(newValue)
         }
     }

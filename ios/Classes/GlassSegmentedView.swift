@@ -110,7 +110,7 @@ struct GlassSegmentedRoot: View {
       }
       .pickerStyle(.segmented)
       .tint(model.tint.map { Color(uiColor: $0) })
-      .onChange(of: model.selectedIndex) { _, newValue in
+      .onChange(of: model.selectedIndex) { newValue in
         model.onIndexChanged?(newValue)
       }
     } else {
@@ -121,7 +121,7 @@ struct GlassSegmentedRoot: View {
       }
       .pickerStyle(.segmented)
       .tint(model.tint.map { Color(uiColor: $0) })
-      .onChange(of: model.selectedIndex) { _, newValue in
+      .onChange(of: model.selectedIndex) { newValue in
         model.onIndexChanged?(newValue)
       }
     }

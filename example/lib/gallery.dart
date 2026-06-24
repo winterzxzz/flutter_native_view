@@ -2,13 +2,21 @@ import 'package:flutter/material.dart';
 
 import 'demos/activity_indicator_demo.dart';
 import 'demos/button_demo.dart';
+import 'demos/button_group_demo.dart';
+import 'demos/color_picker_demo.dart';
 import 'demos/container_demo.dart';
+import 'demos/date_picker_demo.dart';
 import 'demos/icon_button_demo.dart';
 import 'demos/menu_demo.dart';
+import 'demos/navigation_bar_demo.dart';
 import 'demos/progress_view_demo.dart';
 import 'demos/search_bar_demo.dart';
 import 'demos/segmented_demo.dart';
+import 'demos/slider_demo.dart';
+import 'demos/stepper_demo.dart';
 import 'demos/switch_demo.dart';
+import 'demos/tab_bar_demo.dart';
+import 'demos/toolbar_demo.dart';
 
 typedef DemoBuilder = Widget Function();
 
@@ -21,13 +29,21 @@ class DemoEntry {
 final List<DemoEntry> demos = <DemoEntry>[
   DemoEntry('ActivityIndicator', () => buildActivityIndicatorDemo()),
   DemoEntry('Button', () => const ButtonDemo()),
+  DemoEntry('ButtonGroup', () => buildButtonGroupDemo()),
+  DemoEntry('ColorPicker', () => buildColorPickerDemo()),
   DemoEntry('Container', () => buildContainerDemo()),
+  DemoEntry('DatePicker', () => buildDatePickerDemo()),
   DemoEntry('IconButton', () => const IconButtonDemo()),
   DemoEntry('Menu', () => const MenuDemo()),
+  DemoEntry('NavigationBar', () => buildNavigationBarDemo()),
   DemoEntry('ProgressView', () => buildProgressViewDemo()),
   DemoEntry('SearchBar', () => const SearchBarDemo()),
   DemoEntry('SegmentedControl', () => const SegmentedDemo()),
+  DemoEntry('Slider', () => buildSliderDemo()),
+  DemoEntry('Stepper', () => buildStepperDemo()),
   DemoEntry('Switch', () => const SwitchDemo()),
+  DemoEntry('TabBar', () => buildTabBarDemo()),
+  DemoEntry('Toolbar', () => buildToolbarDemo()),
 ];
 
 class Gallery extends StatelessWidget {
