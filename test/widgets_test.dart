@@ -52,6 +52,23 @@ void main() {
     expect(taps, 1);
   });
 
+  testWidgets('LiquidGlassSearchBar fallback renders', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: LiquidGlassSearchBar(
+              text: 'hello',
+              onChanged: (_) {},
+              placeholder: 'Search',
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(find.byType(LiquidGlassSearchBar), findsOneWidget);
+  });
+
   testWidgets('LiquidGlassSegmentedControl fallback selection',
       (WidgetTester tester) async {
     int index = 0;

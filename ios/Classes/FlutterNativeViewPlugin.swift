@@ -35,6 +35,8 @@ public class FlutterNativeViewPlugin: NSObject, FlutterPlugin {
     registrar.register(
       GlassProgressViewFactory(messenger: messenger), withId: progressViewType)
     registrar.register(
+      GlassSearchBarViewFactory(messenger: messenger), withId: searchBarViewType)
+    registrar.register(
       GlassSegmentedViewFactory(messenger: messenger), withId: segmentedViewType)
     registrar.register(
       GlassSliderViewFactory(messenger: messenger), withId: sliderViewType)
