@@ -52,6 +52,21 @@ void main() {
     expect(taps, 1);
   });
 
+  testWidgets('LiquidGlassMenu fallback renders', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: LiquidGlassMenu(
+            label: 'Menu',
+            items: const [MenuItem(id: 'a', title: 'A')],
+            onSelected: (_) {},
+          ),
+        ),
+      ),
+    );
+    expect(find.byType(LiquidGlassMenu), findsOneWidget);
+  });
+
   testWidgets('LiquidGlassSearchBar fallback renders', (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -206,6 +221,61 @@ void main() {
     );
     expect(find.text('A'), findsOneWidget);
     expect(find.text('B'), findsOneWidget);
+  });
+
+  testWidgets('LiquidGlassTabBar fallback renders', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: LiquidGlassTabBar(
+            items: [
+              TabItem(label: 'A'),
+              TabItem(label: 'B'),
+            ],
+            currentIndex: 0,
+            onTap: (int i) {},
+          ),
+        ),
+      ),
+    );
+    expect(find.byType(LiquidGlassTabBar), findsOneWidget);
+  });
+
+  testWidgets('LiquidGlassNavigationBar fallback renders',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: LiquidGlassNavigationBar(
+            title: 'Test',
+            leading: [
+              BarAction(id: 'back', sfSymbol: 'chevron.left'),
+            ],
+            trailing: [
+              BarAction(id: 'done', sfSymbol: 'checkmark'),
+            ],
+          ),
+        ),
+      ),
+    );
+    expect(find.byType(LiquidGlassNavigationBar), findsOneWidget);
+  });
+
+  testWidgets('LiquidGlassToolbar fallback renders',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: LiquidGlassToolbar(
+            actions: [
+              BarAction(id: 'a', sfSymbol: 'trash'),
+              BarAction(id: 'b', sfSymbol: 'folder'),
+            ],
+          ),
+        ),
+      ),
+    );
+    expect(find.byType(LiquidGlassToolbar), findsOneWidget);
   });
 
   testWidgets('LiquidGlassSwitch fallback toggles', (WidgetTester tester) async {

@@ -9,12 +9,16 @@ public class FlutterNativeViewPlugin: NSObject, FlutterPlugin {
   static let containerViewType = "flutter_native_view/glass_container"
   static let datePickerViewType = "flutter_native_view/glass_date_picker"
   static let iconButtonViewType = "flutter_native_view/glass_icon_button"
+  static let menuViewType = "flutter_native_view/glass_menu"
+  static let navigationBarViewType = "flutter_native_view/glass_navigation_bar"
   static let progressViewType = "flutter_native_view/glass_progress"
   static let searchBarViewType = "flutter_native_view/glass_search_bar"
   static let segmentedViewType = "flutter_native_view/glass_segmented"
   static let sliderViewType = "flutter_native_view/glass_slider"
   static let stepperViewType = "flutter_native_view/glass_stepper"
+  static let tabBarViewType = "flutter_native_view/glass_tab_bar"
   static let toggleViewType = "flutter_native_view/glass_toggle"
+  static let toolbarViewType = "flutter_native_view/glass_toolbar"
 
   public static func register(with registrar: FlutterPluginRegistrar) {
     let messenger = registrar.messenger()
@@ -33,6 +37,10 @@ public class FlutterNativeViewPlugin: NSObject, FlutterPlugin {
     registrar.register(
       GlassIconButtonViewFactory(messenger: messenger), withId: iconButtonViewType)
     registrar.register(
+      GlassMenuViewFactory(messenger: messenger), withId: menuViewType)
+    registrar.register(
+      GlassNavigationBarViewFactory(messenger: messenger), withId: navigationBarViewType)
+    registrar.register(
       GlassProgressViewFactory(messenger: messenger), withId: progressViewType)
     registrar.register(
       GlassSearchBarViewFactory(messenger: messenger), withId: searchBarViewType)
@@ -43,6 +51,10 @@ public class FlutterNativeViewPlugin: NSObject, FlutterPlugin {
     registrar.register(
       GlassStepperViewFactory(messenger: messenger), withId: stepperViewType)
     registrar.register(
+      GlassTabBarViewFactory(messenger: messenger), withId: tabBarViewType)
+    registrar.register(
       GlassToggleViewFactory(messenger: messenger), withId: toggleViewType)
+    registrar.register(
+      GlassToolbarViewFactory(messenger: messenger), withId: toolbarViewType)
   }
 }

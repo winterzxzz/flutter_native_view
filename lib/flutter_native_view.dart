@@ -1,6 +1,7 @@
 /// Native SwiftUI Liquid Glass widgets for Flutter (iOS 26+).
 library;
 
+export 'src/bar_action.dart';
 export 'src/liquid_glass_activity_indicator.dart';
 export 'src/liquid_glass_button.dart';
 export 'src/liquid_glass_button_group.dart';
@@ -8,9 +9,13 @@ export 'src/liquid_glass_color_picker.dart';
 export 'src/liquid_glass_container.dart';
 export 'src/liquid_glass_date_picker.dart';
 export 'src/liquid_glass_icon_button.dart';
+export 'src/liquid_glass_menu.dart';
+export 'src/liquid_glass_navigation_bar.dart';
 export 'src/liquid_glass_progress_view.dart';
 export 'src/liquid_glass_search_bar.dart';
 export 'src/liquid_glass_segmented.dart';
 export 'src/liquid_glass_slider.dart';
 export 'src/liquid_glass_stepper.dart';
 export 'src/liquid_glass_switch.dart';
+export 'src/liquid_glass_tab_bar.dart';
+export 'src/liquid_glass_toolbar.dart';
