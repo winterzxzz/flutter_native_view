@@ -10,6 +10,7 @@ export 'src/liquid_glass_container.dart';
 export 'src/liquid_glass_date_picker.dart';
 export 'src/liquid_glass_icon_button.dart';
 export 'src/liquid_glass_menu.dart';
+export 'src/liquid_glass_presenter.dart';
 export 'src/liquid_glass_navigation_bar.dart';
 export 'src/liquid_glass_progress_view.dart';
 export 'src/liquid_glass_search_bar.dart';

@@ -22,6 +22,7 @@ public class FlutterNativeViewPlugin: NSObject, FlutterPlugin {
 
   public static func register(with registrar: FlutterPluginRegistrar) {
     let messenger = registrar.messenger()
+    _ = GlassPresenter(messenger: messenger, viewController: registrar.viewController())
     registrar.register(
       GlassActivityIndicatorViewFactory(messenger: messenger), withId: activityIndicatorViewType)
     registrar.register(

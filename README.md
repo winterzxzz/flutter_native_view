@@ -23,10 +23,13 @@ material looks like the system glass. Concept follows
 | `LiquidGlassColorPicker` | Native SwiftUI `ColorPicker`. Intrinsic size. |
 | `LiquidGlassContainer` | Decorative glass panel. Stack Flutter content on top. |
 | `LiquidGlassDatePicker` | Native SwiftUI `DatePicker`. Intrinsic size, eager gesture. |
+| `LiquidGlassNavigationBar` | Native top bar with title + leading/trailing actions. |
 | `LiquidGlassProgressView` | Native linear `ProgressView`. Parent width, fixed height. |
 | `LiquidGlassSlider` | Native SwiftUI `Slider`. Parent width, fixed height, eager gesture. |
 | `LiquidGlassStepper` | Native SwiftUI `Stepper`. Auto-sizes via intrinsic-size handshake. |
 | `LiquidGlassSwitch` | Native SwiftUI `Toggle`; state bridged back to Dart. |
+| `LiquidGlassTabBar` | Native horizontal tab bar with `GlassEffectContainer`. |
+| `LiquidGlassToolbar` | Native bottom toolbar with action buttons. |
 
 ## Usage
 

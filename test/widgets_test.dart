@@ -52,6 +52,13 @@ void main() {
     expect(taps, 1);
   });
 
+  testWidgets('LiquidGlassPresenter non-iOS does not crash', (WidgetTester tester) async {
+    await LiquidGlassPresenter.presentSheet(title: 'Test');
+    await LiquidGlassPresenter.presentAlert(title: 'Test', message: 'Hi');
+    await LiquidGlassPresenter.presentPopover(title: 'Test');
+    // No crash means success — on non-iOS these are no-ops.
+  });
+
   testWidgets('LiquidGlassMenu fallback renders', (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -265,8 +272,9 @@ void main() {
       (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
-        home: Center(
-          child: LiquidGlassToolbar(
+        home: Scaffold(
+          body: const Center(child: Text('content')),
+          bottomNavigationBar: LiquidGlassToolbar(
             actions: [
               BarAction(id: 'a', sfSymbol: 'trash'),
               BarAction(id: 'b', sfSymbol: 'folder'),
