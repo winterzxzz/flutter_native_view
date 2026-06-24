@@ -72,7 +72,7 @@ struct GlassContainerRoot: View {
     if #available(iOS 26.0, *) {
       GlassEffectContainer(spacing: 0) {
         shape()
-          .fill(Color.clear)
+          .fill(.white.opacity(0.15))
           .glassEffect(resolvedGlass(), in: shape())
       }
     } else {
