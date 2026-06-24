@@ -40,6 +40,9 @@ class GlassSurfacePlatformView: NSObject, FlutterPlatformView {
 
     host = UIHostingController(rootView: root)
     host.view.backgroundColor = .clear
+    // Non-opaque + clear background lets the glass sample the Flutter content
+    // rendered behind this platform view; otherwise the effect looks flat.
+    host.view.isOpaque = false
     host.view.frame = frame
     // The surface is purely decorative: let all touches fall through to the
     // Flutter widgets stacked on top (buttons, etc.).

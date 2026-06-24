@@ -56,6 +56,7 @@ class GlassSwitchPlatformView: NSObject, FlutterPlatformView {
 
     host = UIHostingController(rootView: AnyView(GlassSwitch(model: model, tint: tint)))
     host.view.backgroundColor = .clear
+    host.view.isOpaque = false
     host.view.frame = frame
     super.init()
 
