@@ -52,6 +52,23 @@ void main() {
     expect(taps, 1);
   });
 
+  testWidgets('LiquidGlassSegmentedControl fallback selection',
+      (WidgetTester tester) async {
+    int index = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: LiquidGlassSegmentedControl(
+            segments: const ['A', 'B', 'C'],
+            selectedIndex: index,
+            onChanged: (int i) => index = i,
+          ),
+        ),
+      ),
+    );
+    expect(find.text('A'), findsOneWidget);
+  });
+
   testWidgets('LiquidGlassContainer fallback renders', (WidgetTester tester) async {
     await tester.pumpWidget(
       const MaterialApp(
@@ -124,6 +141,54 @@ void main() {
       ),
     );
     expect(find.byType(LiquidGlassProgressView), findsOneWidget);
+  });
+
+  testWidgets('LiquidGlassDatePicker fallback renders',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: LiquidGlassDatePicker(
+            value: DateTime(2026, 6, 24),
+            onChanged: (DateTime v) {},
+          ),
+        ),
+      ),
+    );
+    expect(find.byType(LiquidGlassDatePicker), findsOneWidget);
+  });
+
+  testWidgets('LiquidGlassColorPicker fallback renders',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: LiquidGlassColorPicker(
+            value: Colors.blue,
+            onChanged: (Color v) {},
+          ),
+        ),
+      ),
+    );
+    expect(find.byType(LiquidGlassColorPicker), findsOneWidget);
+  });
+
+  testWidgets('LiquidGlassButtonGroup fallback renders',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: LiquidGlassButtonGroup(
+            buttons: [
+              GroupButton(id: 'a', label: 'A', onPressed: () {}),
+              GroupButton(id: 'b', label: 'B', onPressed: () {}),
+            ],
+          ),
+        ),
+      ),
+    );
+    expect(find.text('A'), findsOneWidget);
+    expect(find.text('B'), findsOneWidget);
   });
 
   testWidgets('LiquidGlassSwitch fallback toggles', (WidgetTester tester) async {
