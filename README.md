@@ -1,65 +1,65 @@
 # flutter_native_view
 
-Liquid Glass widgets for Flutter. **Pure Dart** — rendered with `BackdropFilter`,
-so the glass blurs and tints whatever is painted behind it and works on **every
-platform** Flutter supports (iOS, Android, macOS, web, Windows, Linux). No native
-code, no iOS 26 requirement.
+Native **SwiftUI Liquid Glass** widgets for Flutter. Controls are rendered by
+SwiftUI and embedded via platform views, so on **iOS 26+** they use Apple's
+authentic `glassEffect` material (interactive, with `GlassEffectContainer`).
+Older iOS and other platforms fall back gracefully.
 
-> Design language inspired by Apple's Liquid Glass. This is a Flutter emulation,
-> not the native iOS material.
+## Why native
+
+Apple's Liquid Glass samples the real native render tree and reacts to touch.
+Faking it with a Flutter `BackdropFilter` looks flat, because the glass needs to
+wrap **real native content**. Here the label/switch are rendered natively, so the
+material looks like the system glass. Concept follows
+[native_liquid_glass](https://github.com/tienanh306201z/native_liquid_glass).
 
 ## Widgets
 
-| Widget | What it does |
+| Widget | Notes |
 | --- | --- |
-| `LiquidGlass` | Wraps any child in a frosted glass surface. |
-| `LiquidGlassButton` / `.heading` | Tappable glass button with a press animation. |
-| `LiquidGlassSwitch` | Animated glass toggle switch. |
-| `GlassBox` | Low-level glass surface, if you want to build your own. |
+| `LiquidGlassButton` / `.heading` | Native button; `label` rendered in SwiftUI. Auto-sizes via an intrinsic-size handshake. |
+| `LiquidGlassSwitch` | Native SwiftUI `Toggle`; state bridged back to Dart. |
 
 ## Usage
 
 ```dart
 import 'package:flutter_native_view/flutter_native_view.dart';
 
-// Generic wrapper
-LiquidGlass(
-  style: const GlassStyle(cornerRadius: 24),
-  child: const Text('Any widget, wrapped'),
-);
-
-// Button
 LiquidGlassButton(
+  label: 'Add',
   onPressed: () {},
-  child: const Text('Tap me'),
+  tint: Colors.blue,          // optional
+  // borderRadius: 16,        // optional; capsule when null
 );
 
-// Prominent heading button
-LiquidGlassButton.heading(
-  onPressed: () {},
-  child: const Text('Liquid Glass'),
-);
+LiquidGlassButton.heading(label: 'Glass Todos', onPressed: () {});
 
-// Toggle
 LiquidGlassSwitch(
   value: on,
   onChanged: (v) => setState(() => on = v),
 );
 ```
 
-## Styling
+## Platform behaviour
 
-`GlassStyle(tint, cornerRadius, variant, blurSigma)`:
+- **iOS 26+** — authentic Liquid Glass (`glassEffect(.regular.interactive())`).
+- **iOS 16–25** — standard SwiftUI button / toggle styling.
+- **iOS 14–15** — system controls.
+- **Non-iOS** — Material `FilledButton` / `Switch` fallbacks.
 
-- `tint` — overlay color (defaults to white).
-- `cornerRadius` — rounded shape radius.
-- `variant` — `GlassVariant.regular` (frosted) or `GlassVariant.clear` (more translucent).
-- `blurSigma` — Gaussian blur strength of the backdrop.
+## How it works
 
-## Tip
+- Each widget is a `UiKitView`. The iOS plugin registers a
+  `FlutterPlatformViewFactory` per control.
+- A per-view `FlutterMethodChannel` (`<viewType>/<id>`) carries events
+  (`onPressed`, `onChanged`) and updates (`updateConfig`, `setValue`).
+- Buttons negotiate their size: native replies to `getIntrinsicSize`, and Flutter
+  wraps the platform view in a matching `SizedBox`.
 
-The glass only looks like glass when there is something behind it. Place these
-widgets over a colorful background, an image, or scrolling content.
+## Requirements
+
+- Xcode with the **iOS 26 SDK** (to compile `glassEffect`, guarded by
+  `#available`). The deployment target stays at 14.0.
 
 ## Run the example
 
@@ -69,5 +69,4 @@ flutter run
 ```
 
 See `docs/superpowers/specs/2026-06-24-liquid-glass-plugin-design.md` for the
-original design and the rationale for moving from native SwiftUI to a pure
-Flutter implementation.
+design history (native → Flutter shader → back to native).

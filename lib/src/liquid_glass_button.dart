@@ -1,90 +1,128 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-import 'glass_box.dart';
-import 'glass_style.dart';
+const String _kButtonViewType = 'flutter_native_view/glass_button';
 
-/// A tappable Liquid Glass button with a press animation.
+/// A button rendered by native SwiftUI with authentic Apple Liquid Glass on
+/// iOS 26+. On non-iOS platforms it falls back to a Material [FilledButton].
+///
+/// The label is rendered natively, so the glass material wraps real content —
+/// this is what makes it look like the system glass rather than a flat overlay.
 class LiquidGlassButton extends StatefulWidget {
   const LiquidGlassButton({
     super.key,
-    required this.child,
+    required this.label,
     required this.onPressed,
-    this.style = const GlassStyle(),
-    this.padding = const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+    this.tint,
+    this.borderRadius,
+    this.interactive = true,
   });
 
-  /// A larger, more prominent variant suited to headings / hero actions.
+  /// A more prominent variant with a larger rounded shape.
   factory LiquidGlassButton.heading({
     Key? key,
-    required Widget child,
-    required VoidCallback onPressed,
-    GlassStyle style = const GlassStyle(cornerRadius: 28),
-    EdgeInsetsGeometry padding =
-        const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+    required String label,
+    required VoidCallback? onPressed,
+    Color? tint,
+    double borderRadius = 28,
+    bool interactive = true,
   }) {
     return LiquidGlassButton(
       key: key,
+      label: label,
       onPressed: onPressed,
-      style: style,
-      padding: padding,
-      child: child,
+      tint: tint,
+      borderRadius: borderRadius,
+      interactive: interactive,
     );
   }
 
-  final Widget child;
-  final VoidCallback onPressed;
-  final GlassStyle style;
-  final EdgeInsetsGeometry padding;
+  /// Button title text, rendered natively on iOS.
+  final String label;
+
+  /// Called on tap. When `null`, the button is disabled.
+  final VoidCallback? onPressed;
+
+  /// Optional glass tint color.
+  final Color? tint;
+
+  /// Optional corner radius. When `null`, the native button is a capsule.
+  final double? borderRadius;
+
+  /// Whether the iOS 26 glass reacts to touch.
+  final bool interactive;
 
   @override
   State<LiquidGlassButton> createState() => _LiquidGlassButtonState();
 }
 
 class _LiquidGlassButtonState extends State<LiquidGlassButton> {
-  bool _pressed = false;
+  MethodChannel? _channel;
+  Size? _size;
 
-  void _setPressed(bool value) {
-    if (_pressed != value) setState(() => _pressed = value);
+  Map<String, dynamic> _params() => <String, dynamic>{
+        'title': widget.label,
+        'tint': widget.tint?.toARGB32(),
+        'cornerRadius': widget.borderRadius,
+        'interactive': widget.interactive,
+      };
+
+  Future<void> _onCreated(int id) async {
+    final MethodChannel channel = MethodChannel('$_kButtonViewType/$id');
+    channel.setMethodCallHandler((MethodCall call) async {
+      if (call.method == 'onPressed') widget.onPressed?.call();
+      return null;
+    });
+    _channel = channel;
+    await _applySize(channel.invokeMapMethod<String, dynamic>('getIntrinsicSize'));
+  }
+
+  Future<void> _applySize(Future<Map<String, dynamic>?> call) async {
+    final Map<String, dynamic>? res = await call;
+    if (res != null && mounted) {
+      setState(() {
+        _size = Size((res['width'] as num).toDouble(), (res['height'] as num).toDouble());
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(LiquidGlassButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.label != widget.label ||
+        oldWidget.tint != widget.tint ||
+        oldWidget.borderRadius != widget.borderRadius ||
+        oldWidget.interactive != widget.interactive) {
+      _applySize(_channel?.invokeMapMethod<String, dynamic>('updateConfig', _params()) ??
+          Future<Map<String, dynamic>?>.value());
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => _setPressed(true),
-      onTapCancel: () => _setPressed(false),
-      onTapUp: (_) {
-        _setPressed(false);
-        widget.onPressed();
-      },
-      child: AnimatedScale(
-        scale: _pressed ? 0.96 : 1.0,
-        duration: const Duration(milliseconds: 120),
-        curve: Curves.easeOut,
-        child: Stack(
-          children: <Widget>[
-            GlassBox(
-              style: widget.style,
-              child: Padding(padding: widget.padding, child: widget.child),
-            ),
-            // Brief highlight on press for a tactile feel.
-            Positioned.fill(
-              child: IgnorePointer(
-                child: AnimatedOpacity(
-                  opacity: _pressed ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 120),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: const Color(0x26FFFFFF),
-                      borderRadius:
-                          BorderRadius.circular(widget.style.cornerRadius),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+    if (defaultTargetPlatform != TargetPlatform.iOS) {
+      return FilledButton(
+        onPressed: widget.onPressed,
+        child: Text(widget.label),
+      );
+    }
+
+    final Size size = _size ?? const Size(120, 48);
+    return SizedBox(
+      width: size.width,
+      height: size.height,
+      child: UiKitView(
+        viewType: _kButtonViewType,
+        creationParams: _params(),
+        creationParamsCodec: const StandardMessageCodec(),
+        onPlatformViewCreated: _onCreated,
+        // Tap claim so the down→up sequence reaches the native button and the
+        // interactive glass settles back after release.
+        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+          Factory<TapGestureRecognizer>(TapGestureRecognizer.new),
+        },
       ),
     );
   }

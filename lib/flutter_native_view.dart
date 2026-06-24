@@ -1,8 +1,5 @@
-/// Liquid Glass widgets for Flutter — pure Dart, rendered with BackdropFilter.
+/// Native SwiftUI Liquid Glass widgets for Flutter (iOS 26+).
 library;
 
-export 'src/glass_box.dart';
-export 'src/glass_style.dart';
-export 'src/liquid_glass.dart';
 export 'src/liquid_glass_button.dart';
 export 'src/liquid_glass_switch.dart';

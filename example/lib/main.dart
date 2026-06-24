@@ -67,7 +67,7 @@ class _TodoPageState extends State<TodoPage> {
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
@@ -81,11 +81,23 @@ class _TodoPageState extends State<TodoPage> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                _InputBar(controller: _controller, onAdd: _add),
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: _GlassField(controller: _controller, onSubmit: _add),
+                    ),
+                    const SizedBox(width: 12),
+                    // Native Liquid Glass button.
+                    LiquidGlassButton(label: 'Add', onPressed: _add),
+                  ],
+                ),
                 const SizedBox(height: 20),
                 Expanded(
                   child: _todos.isEmpty
-                      ? const _EmptyState()
+                      ? const Center(
+                          child: Text('No tasks yet',
+                              style: TextStyle(color: Colors.white70)),
+                        )
                       : ListView.separated(
                           itemCount: _todos.length,
                           separatorBuilder: (_, _) => const SizedBox(height: 12),
@@ -108,41 +120,32 @@ class _TodoPageState extends State<TodoPage> {
   }
 }
 
-class _InputBar extends StatelessWidget {
-  const _InputBar({required this.controller, required this.onAdd});
+class _GlassField extends StatelessWidget {
+  const _GlassField({required this.controller, required this.onSubmit});
 
   final TextEditingController controller;
-  final VoidCallback onAdd;
+  final VoidCallback onSubmit;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: LiquidGlass(
-            style: const GlassStyle(cornerRadius: 18),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: TextField(
-              controller: controller,
-              onSubmitted: (_) => onAdd(),
-              style: const TextStyle(color: Colors.white),
-              cursorColor: Colors.white,
-              decoration: const InputDecoration(
-                hintText: 'Add a task…',
-                hintStyle: TextStyle(color: Colors.white60),
-                border: InputBorder.none,
-              ),
-            ),
-          ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.30)),
+      ),
+      child: TextField(
+        controller: controller,
+        onSubmitted: (_) => onSubmit(),
+        style: const TextStyle(color: Colors.white),
+        cursorColor: Colors.white,
+        decoration: const InputDecoration(
+          hintText: 'Add a task…',
+          hintStyle: TextStyle(color: Colors.white60),
+          border: InputBorder.none,
         ),
-        const SizedBox(width: 12),
-        LiquidGlassButton(
-          onPressed: onAdd,
-          style: const GlassStyle(cornerRadius: 18),
-          padding: const EdgeInsets.all(16),
-          child: const Icon(Icons.add, color: Colors.white),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -160,9 +163,13 @@ class _TodoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LiquidGlass(
-      style: const GlassStyle(cornerRadius: 20),
+    return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
+      ),
       child: Row(
         children: <Widget>[
           Expanded(
@@ -175,26 +182,13 @@ class _TodoCard extends StatelessWidget {
               ),
             ),
           ),
+          // Native Liquid Glass switch.
           LiquidGlassSwitch(value: todo.done, onChanged: onToggle),
           IconButton(
             onPressed: onDelete,
             icon: const Icon(Icons.close, color: Colors.white70),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text(
-        'No tasks yet',
-        style: TextStyle(color: Colors.white70, fontSize: 16),
       ),
     );
   }

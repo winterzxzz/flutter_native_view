@@ -2,43 +2,51 @@ import 'package:flutter/material.dart';
 import 'package:flutter_native_view/flutter_native_view.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+// On the test host (non-iOS) the widgets render their Material fallbacks, which
+// is what these tests exercise. The native glass path is verified on an iOS 26
+// simulator.
 void main() {
-  testWidgets('LiquidGlass renders its child', (WidgetTester tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: Center(child: LiquidGlass(child: Text('hello'))),
-      ),
-    );
-    expect(find.text('hello'), findsOneWidget);
-    expect(find.byType(BackdropFilter), findsOneWidget);
-  });
-
-  testWidgets('LiquidGlassButton fires onPressed', (WidgetTester tester) async {
+  testWidgets('LiquidGlassButton fallback fires onPressed',
+      (WidgetTester tester) async {
     int taps = 0;
     await tester.pumpWidget(
       MaterialApp(
         home: Center(
           child: LiquidGlassButton(
+            label: 'Tap',
             onPressed: () => taps++,
-            child: const Text('tap'),
           ),
         ),
       ),
     );
-    await tester.tap(find.text('tap'));
+    expect(find.text('Tap'), findsOneWidget);
+    await tester.tap(find.byType(LiquidGlassButton));
     expect(taps, 1);
   });
 
-  testWidgets('LiquidGlassSwitch toggles', (WidgetTester tester) async {
+  testWidgets('LiquidGlassButton.heading builds', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: LiquidGlassButton.heading(label: 'Hi', onPressed: () {}),
+        ),
+      ),
+    );
+    expect(find.text('Hi'), findsOneWidget);
+  });
+
+  testWidgets('LiquidGlassSwitch fallback toggles', (WidgetTester tester) async {
     bool value = false;
     await tester.pumpWidget(
       StatefulBuilder(
         builder: (BuildContext context, StateSetter setState) {
           return MaterialApp(
-            home: Center(
-              child: LiquidGlassSwitch(
-                value: value,
-                onChanged: (bool v) => setState(() => value = v),
+            home: Scaffold(
+              body: Center(
+                child: LiquidGlassSwitch(
+                  value: value,
+                  onChanged: (bool v) => setState(() => value = v),
+                ),
               ),
             ),
           );

@@ -1,71 +1,75 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-import 'glass_box.dart';
-import 'glass_style.dart';
+const String _kToggleViewType = 'flutter_native_view/glass_toggle';
 
-/// A Liquid Glass toggle switch, rendered entirely in Flutter.
-class LiquidGlassSwitch extends StatelessWidget {
+/// A native SwiftUI toggle with Liquid Glass styling on iOS 26+.
+///
+/// On non-iOS platforms it falls back to a Material [Switch].
+class LiquidGlassSwitch extends StatefulWidget {
   const LiquidGlassSwitch({
     super.key,
     required this.value,
     required this.onChanged,
     this.tint,
-    this.width = 56,
-    this.height = 32,
   });
 
   final bool value;
   final ValueChanged<bool> onChanged;
 
-  /// Glass tint while the switch is on. Defaults to a system-green.
+  /// Optional tint color for the on state.
   final Color? tint;
 
-  final double width;
-  final double height;
+  @override
+  State<LiquidGlassSwitch> createState() => _LiquidGlassSwitchState();
+}
 
-  static const Color _onColor = Color(0xFF34C759);
+class _LiquidGlassSwitchState extends State<LiquidGlassSwitch> {
+  MethodChannel? _channel;
+
+  Map<String, dynamic> _params() => <String, dynamic>{
+        'value': widget.value,
+        'tint': widget.tint?.toARGB32(),
+      };
+
+  void _onCreated(int id) {
+    final MethodChannel channel = MethodChannel('$_kToggleViewType/$id');
+    channel.setMethodCallHandler((MethodCall call) async {
+      if (call.method == 'onChanged') widget.onChanged(call.arguments as bool);
+      return null;
+    });
+    _channel = channel;
+  }
+
+  @override
+  void didUpdateWidget(LiquidGlassSwitch oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value) {
+      _channel?.invokeMethod<void>('setValue', widget.value);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final double thumb = height - 6;
-    final GlassStyle style = GlassStyle(
-      cornerRadius: height / 2,
-      blurSigma: 10,
-      tint: value ? (tint ?? _onColor) : null,
-    );
+    if (defaultTargetPlatform != TargetPlatform.iOS) {
+      return Switch(value: widget.value, onChanged: widget.onChanged);
+    }
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => onChanged(!value),
-      child: SizedBox(
-        width: width,
-        height: height,
-        child: GlassBox(
-          style: style,
-          child: AnimatedAlign(
-            duration: const Duration(milliseconds: 180),
-            curve: Curves.easeOut,
-            alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-            child: Padding(
-              padding: const EdgeInsets.all(3),
-              child: Container(
-                width: thumb,
-                height: thumb,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFFFFFFF),
-                  boxShadow: <BoxShadow>[
-                    BoxShadow(
-                      color: const Color(0xFF000000).withValues(alpha: 0.25),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
+    return SizedBox(
+      width: 52,
+      height: 32,
+      child: UiKitView(
+        viewType: _kToggleViewType,
+        creationParams: _params(),
+        creationParamsCodec: const StandardMessageCodec(),
+        onPlatformViewCreated: _onCreated,
+        // The native switch is interactive (tap + drag), so it must receive
+        // the raw touches.
+        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+          Factory<EagerGestureRecognizer>(EagerGestureRecognizer.new),
+        },
       ),
     );
   }
