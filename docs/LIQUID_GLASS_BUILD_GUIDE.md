@@ -341,9 +341,9 @@ noted. **Do not start the modal group (Sheet/Alert/Popover) until the
 | 2 | Switch/Toggle | `glass_toggle` | S | fixed | eager | ✅ |
 | 3 | IconButton | `glass_icon_button` | S | intrinsic | tap | ⬜ |
 | 4 | Container | `glass_container` | S | parent | none | ✅ |
-| 5 | Slider | `glass_slider` | M | parent-w/fixed-h | eager | ⬜ |
+| 5 | Slider | `glass_slider` | M | parent-w/fixed-h | eager | ✅ |
 | 6 | SegmentedControl | `glass_segmented` | M | intrinsic | eager | ⬜ |
-| 7 | Stepper | `glass_stepper` | M | intrinsic | tap | ⬜ |
+| 7 | Stepper | `glass_stepper` | M | intrinsic | tap | ✅ |
 | 8 | SearchBar | `glass_search_bar` | M | parent-w/fixed-h | eager | ⬜ |
 | 9 | TabBar | `glass_tab_bar` | L | fixed-h | eager | ⬜ |
 | 10 | NavigationBar | `glass_navigation_bar` | M | fixed-h | tap | ⬜ |
