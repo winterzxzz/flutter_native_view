@@ -1,28 +1,25 @@
 import 'package:flutter/widgets.dart';
 
 /// Visual variant of the Liquid Glass material.
-///
-/// Maps to Apple's `Glass` styles on iOS 26+.
 enum GlassVariant {
-  /// Frosted glass that adapts to the content behind it. Default.
+  /// Frosted glass with a visible tint. Default.
   regular,
 
-  /// Highly translucent glass with minimal frosting.
+  /// Highly translucent glass with minimal tint.
   clear,
 }
 
 /// Immutable style description for a Liquid Glass surface.
-///
-/// Passed across the platform channel to the native SwiftUI layer.
 @immutable
 class GlassStyle {
   const GlassStyle({
     this.tint,
     this.cornerRadius = 20,
     this.variant = GlassVariant.regular,
+    this.blurSigma = 18,
   });
 
-  /// Optional color tint applied to the glass. `null` keeps the neutral glass.
+  /// Color tint of the glass. Defaults to white when `null`.
   final Color? tint;
 
   /// Corner radius of the rounded glass shape, in logical pixels.
@@ -31,25 +28,31 @@ class GlassStyle {
   /// Frosting variant. See [GlassVariant].
   final GlassVariant variant;
 
+  /// Gaussian blur strength applied to the content behind the glass.
+  final double blurSigma;
+
+  /// Opacity multiplier for the tint overlay (lower for [GlassVariant.clear]).
+  double get _tintStrength => variant == GlassVariant.clear ? 0.45 : 1.0;
+
+  /// Effective tint color, falling back to white.
+  Color get effectiveTint => tint ?? const Color(0xFFFFFFFF);
+
+  /// Top/bottom overlay opacities used to fake the glass sheen.
+  double get topOpacity => 0.28 * _tintStrength;
+  double get bottomOpacity => 0.10 * _tintStrength;
+
   GlassStyle copyWith({
     Color? tint,
     double? cornerRadius,
     GlassVariant? variant,
+    double? blurSigma,
   }) {
     return GlassStyle(
       tint: tint ?? this.tint,
       cornerRadius: cornerRadius ?? this.cornerRadius,
       variant: variant ?? this.variant,
+      blurSigma: blurSigma ?? this.blurSigma,
     );
-  }
-
-  /// Serializes to the map consumed by the native platform view factory.
-  Map<String, dynamic> toMap() {
-    return <String, dynamic>{
-      'tintColor': tint?.toARGB32(),
-      'cornerRadius': cornerRadius,
-      'variant': variant.name,
-    };
   }
 
   @override
@@ -57,9 +60,10 @@ class GlassStyle {
     return other is GlassStyle &&
         other.tint == tint &&
         other.cornerRadius == cornerRadius &&
-        other.variant == variant;
+        other.variant == variant &&
+        other.blurSigma == blurSigma;
   }
 
   @override
-  int get hashCode => Object.hash(tint, cornerRadius, variant);
+  int get hashCode => Object.hash(tint, cornerRadius, variant, blurSigma);
 }

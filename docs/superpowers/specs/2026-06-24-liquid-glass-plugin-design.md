@@ -106,3 +106,22 @@ intrinsic-size problems.
 - Refracting Flutter pixels behind glass (hybrid composition).
 - Android / web / macOS native glass.
 - Interactive ripple effects beyond button press.
+
+## Update 2026-06-24 — pivot to pure Flutter
+
+The native SwiftUI `glassEffect` approach could not reliably refract the Flutter
+content painted behind a platform view (the glass looked flat over Flutter-drawn
+backgrounds — a known platform-view backdrop limitation). Two popular pub.dev
+packages (`liquid_glass_easy`, `liquid_glass_widgets`) solve this with pure
+Flutter (`BackdropFilter` + fragment shaders) instead of native code.
+
+Decision: drop the native SwiftUI plugin and reimplement with `BackdropFilter`.
+
+- Removed all iOS Swift code, the podspec, and the `plugin:` declaration — this
+  is now a pure Dart Flutter package.
+- New core: `GlassBox` (ClipRRect + BackdropFilter blur + tint gradient + rim +
+  shadow), reused by `LiquidGlass`, `LiquidGlassButton`, `LiquidGlassSwitch`.
+- `GlassStyle` gains `blurSigma`; drops the channel `toMap`.
+- Works on all Flutter platforms, no iOS 26 requirement.
+- Future polish: GLSL `FragmentShader` for real refraction/distortion (the
+  packages above use `.frag` shaders); current MVP is blur + tint only.

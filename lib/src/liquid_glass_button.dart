@@ -1,12 +1,9 @@
 import 'package:flutter/widgets.dart';
 
+import 'glass_box.dart';
 import 'glass_style.dart';
-import 'liquid_glass.dart';
 
-/// A tappable Liquid Glass button.
-///
-/// The glass is a decorative native surface; the tap and the press feedback are
-/// handled by Flutter, so any [child] widget works as the label.
+/// A tappable Liquid Glass button with a press animation.
 class LiquidGlassButton extends StatefulWidget {
   const LiquidGlassButton({
     super.key,
@@ -66,13 +63,11 @@ class _LiquidGlassButtonState extends State<LiquidGlassButton> {
         curve: Curves.easeOut,
         child: Stack(
           children: <Widget>[
-            LiquidGlass(
+            GlassBox(
               style: widget.style,
-              padding: widget.padding,
-              child: widget.child,
+              child: Padding(padding: widget.padding, child: widget.child),
             ),
-            // Pure-Flutter press highlight: reliable even over the native
-            // glass platform view, where Flutter opacity is not honored.
+            // Brief highlight on press for a tactile feel.
             Positioned.fill(
               child: IgnorePointer(
                 child: AnimatedOpacity(
