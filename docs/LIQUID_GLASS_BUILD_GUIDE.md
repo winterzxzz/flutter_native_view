@@ -354,10 +354,10 @@ noted. **Do not start the modal group (Sheet/Alert/Popover) until the
 | 15 | ActivityIndicator | `glass_activity_indicator` | S | fixed | none | ✅ |
 | 16 | ProgressView | `glass_progress` | S | parent-w/fixed-h | none | ✅ |
 | 17 | ButtonGroup | `glass_button_group` | M | intrinsic | tap | ✅ |
-| 0a | **Presenter (shared)** | n/a (modal host) | L | n/a | n/a | ⬜ |
-| 18 | Sheet | via presenter | M | n/a | n/a | ⬜ (needs 0a) |
-| 19 | Alert | via presenter | M | n/a | n/a | ⬜ (needs 0a) |
-| 20 | Popover | via presenter | M | n/a | n/a | ⬜ (needs 0a) |
+| 0a | **Presenter (shared)** | n/a (modal host) | L | n/a | n/a | ✅ |
+| 18 | Sheet | via presenter | M | n/a | n/a | ✅ |
+| 19 | Alert | via presenter | M | n/a | n/a | ✅ |
+| 20 | Popover | via presenter | M | n/a | n/a | ✅ |
 
 ### Per-widget specs
 
