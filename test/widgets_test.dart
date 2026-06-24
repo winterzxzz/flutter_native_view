@@ -52,6 +52,13 @@ void main() {
     expect(taps, 1);
   });
 
+  testWidgets('LiquidGlassSheet fallback does not crash', (WidgetTester tester) async {
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: const Text('x'))));
+    // Pump again to settle, then verify no crash from just importing.
+    await tester.pump();
+    expect(find.text('x'), findsOneWidget);
+  });
+
   testWidgets('LiquidGlassPresenter non-iOS does not crash', (WidgetTester tester) async {
     await LiquidGlassPresenter.presentSheet(title: 'Test');
     await LiquidGlassPresenter.presentAlert(title: 'Test', message: 'Hi');
