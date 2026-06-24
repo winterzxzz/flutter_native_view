@@ -15,7 +15,10 @@ class LiquidGlassButton extends StatefulWidget {
     super.key,
     required this.label,
     required this.onPressed,
+    this.leadingSymbol,
+    this.trailingSymbol,
     this.tint,
+    this.labelColor,
     this.borderRadius,
     this.interactive = true,
   });
@@ -25,7 +28,10 @@ class LiquidGlassButton extends StatefulWidget {
     Key? key,
     required String label,
     required VoidCallback? onPressed,
+    String? leadingSymbol,
+    String? trailingSymbol,
     Color? tint,
+    Color? labelColor,
     double borderRadius = 28,
     bool interactive = true,
   }) {
@@ -33,7 +39,10 @@ class LiquidGlassButton extends StatefulWidget {
       key: key,
       label: label,
       onPressed: onPressed,
+      leadingSymbol: leadingSymbol,
+      trailingSymbol: trailingSymbol,
       tint: tint,
+      labelColor: labelColor,
       borderRadius: borderRadius,
       interactive: interactive,
     );
@@ -42,11 +51,20 @@ class LiquidGlassButton extends StatefulWidget {
   /// Button title text, rendered natively on iOS.
   final String label;
 
+  /// Optional SF Symbol shown before the label (prefix icon).
+  final String? leadingSymbol;
+
+  /// Optional SF Symbol shown after the label (suffix icon).
+  final String? trailingSymbol;
+
   /// Called on tap. When `null`, the button is disabled.
   final VoidCallback? onPressed;
 
-  /// Optional glass tint color.
+  /// Optional glass tint color. Tints the glass material, not the label.
   final Color? tint;
+
+  /// Optional label text color. Defaults to white on iOS glass.
+  final Color? labelColor;
 
   /// Optional corner radius. When `null`, the native button is a capsule.
   final double? borderRadius;
@@ -64,9 +82,13 @@ class _LiquidGlassButtonState extends State<LiquidGlassButton> {
 
   Map<String, dynamic> _params() => <String, dynamic>{
         'title': widget.label,
+        'leadingSymbol': widget.leadingSymbol,
+        'trailingSymbol': widget.trailingSymbol,
         'tint': widget.tint?.toARGB32(),
+        'labelColor': widget.labelColor?.toARGB32(),
         'cornerRadius': widget.borderRadius,
         'interactive': widget.interactive,
+        'enabled': widget.onPressed != null,
       };
 
   Future<void> _onCreated(int id) async {
@@ -92,9 +114,13 @@ class _LiquidGlassButtonState extends State<LiquidGlassButton> {
   void didUpdateWidget(LiquidGlassButton oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.label != widget.label ||
+        oldWidget.leadingSymbol != widget.leadingSymbol ||
+        oldWidget.trailingSymbol != widget.trailingSymbol ||
         oldWidget.tint != widget.tint ||
+        oldWidget.labelColor != widget.labelColor ||
         oldWidget.borderRadius != widget.borderRadius ||
-        oldWidget.interactive != widget.interactive) {
+        oldWidget.interactive != widget.interactive ||
+        (oldWidget.onPressed == null) != (widget.onPressed == null)) {
       _applySize(_channel?.invokeMapMethod<String, dynamic>('updateConfig', _params()) ??
           Future<Map<String, dynamic>?>.value());
     }

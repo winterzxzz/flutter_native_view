@@ -78,23 +78,35 @@ final class GlassButtonPlatformView: NSObject, FlutterPlatformView {
 
 final class GlassButtonModel: ObservableObject {
   @Published var title: String
+  @Published var leadingSymbol: String?
+  @Published var trailingSymbol: String?
   @Published var tint: UIColor?
+  @Published var labelColor: UIColor?
   @Published var cornerRadius: CGFloat?
   @Published var interactive: Bool
+  @Published var enabled: Bool
   var onPressed: (() -> Void)?
 
   init(args: [String: Any]) {
     title = args["title"] as? String ?? "Button"
+    leadingSymbol = args["leadingSymbol"] as? String
+    trailingSymbol = args["trailingSymbol"] as? String
     tint = GlassColor.fromARGB(args["tint"] as? Int)
+    labelColor = GlassColor.fromARGB(args["labelColor"] as? Int)
     cornerRadius = (args["cornerRadius"] as? Double).map { CGFloat($0) }
     interactive = args["interactive"] as? Bool ?? true
+    enabled = args["enabled"] as? Bool ?? true
   }
 
   func apply(args: [String: Any]) {
     title = args["title"] as? String ?? title
+    leadingSymbol = args["leadingSymbol"] as? String
+    trailingSymbol = args["trailingSymbol"] as? String
     tint = GlassColor.fromARGB(args["tint"] as? Int)
+    labelColor = GlassColor.fromARGB(args["labelColor"] as? Int)
     cornerRadius = (args["cornerRadius"] as? Double).map { CGFloat($0) }
     interactive = args["interactive"] as? Bool ?? interactive
+    enabled = args["enabled"] as? Bool ?? enabled
   }
 }
 
@@ -111,11 +123,23 @@ struct GlassButtonRoot: View {
   }
 
   private var label: some View {
-    Text(model.title)
-      .font(.system(size: 17, weight: .semibold))
-      .foregroundStyle(model.tint.map { Color(uiColor: $0) } ?? .primary)
-      .padding(.horizontal, 20)
-      .padding(.vertical, 12)
+    // Label color is independent of the glass tint: a tinted glass tints the
+    // material, not the text. Using the tint for both makes the label vanish
+    // into the surface (e.g. orange text on orange glass).
+    HStack(spacing: 6) {
+      if let leading = model.leadingSymbol {
+        Image(systemName: leading).font(.system(size: 16, weight: .semibold))
+      }
+      if !model.title.isEmpty {
+        Text(model.title).font(.system(size: 17, weight: .semibold))
+      }
+      if let trailing = model.trailingSymbol {
+        Image(systemName: trailing).font(.system(size: 16, weight: .semibold))
+      }
+    }
+    .foregroundStyle(model.labelColor.map { Color(uiColor: $0) } ?? .white)
+    .padding(.horizontal, 20)
+    .padding(.vertical, 12)
   }
 
   var body: some View {
@@ -127,12 +151,15 @@ struct GlassButtonRoot: View {
             .glassEffect(resolvedGlass(), in: shape())
         }
         .buttonStyle(.plain)
+        .disabled(!model.enabled)
+        .opacity(model.enabled ? 1 : 0.4)
       }
     } else {
       Button(action: { model.onPressed?() }) { label }
         .buttonStyle(.borderedProminent)
         .tint(model.tint.map { Color(uiColor: $0) } ?? .accentColor)
         .clipShape(shape())
+        .disabled(!model.enabled)
     }
   }
 

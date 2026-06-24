@@ -40,6 +40,9 @@ final class GlassTabBarPlatformView: NSObject, FlutterPlatformView {
     model.onIndexChanged = { [weak channel] index in
       channel?.invokeMethod("onIndexChanged", arguments: index)
     }
+    model.onAccessoryTap = { [weak channel] in
+      channel?.invokeMethod("onAccessoryTap", arguments: nil)
+    }
 
     if #available(iOS 16.0, *) {
       let hosting = UIHostingController(rootView: GlassTabBarRoot(model: model))
@@ -75,7 +78,10 @@ struct TabBarItem {
 final class GlassTabBarModel: ObservableObject {
   @Published var items: [TabBarItem] = []
   @Published var currentIndex: Int = 0
+  @Published var accessorySymbol: String?
+  @Published var tint: UIColor?
   var onIndexChanged: ((Int) -> Void)?
+  var onAccessoryTap: (() -> Void)?
 
   init(args: [String: Any]) {
     apply(args: args)
@@ -91,6 +97,10 @@ final class GlassTabBarModel: ObservableObject {
       }
     }
     currentIndex = args["currentIndex"] as? Int ?? currentIndex
+    if args.keys.contains("accessorySymbol") {
+      accessorySymbol = args["accessorySymbol"] as? String
+    }
+    tint = GlassColor.fromARGB(args["tint"] as? Int)
   }
 }
 
@@ -100,56 +110,78 @@ final class GlassTabBarModel: ObservableObject {
 struct GlassTabBarRoot: View {
   @ObservedObject var model: GlassTabBarModel
 
+  // Colors are explicit, not `.primary`/`.secondary`: a platform-view hosting
+  // controller can resolve those against the wrong trait (light) and make the
+  // labels nearly invisible on a dark glass surface.
+  private var accent: Color { model.tint.map { Color(uiColor: $0) } ?? .white }
+  private var selectedColor: Color { accent }
+  private var unselectedColor: Color { Color.white.opacity(0.55) }
+  private func selectionFill(_ selected: Bool) -> Color {
+    selected ? accent.opacity(0.18) : .clear
+  }
+
+  private func tabContent(_ item: TabBarItem, selected: Bool) -> some View {
+    VStack(spacing: 4) {
+      if let symbol = item.sfSymbol {
+        Image(systemName: symbol)
+          .font(.system(size: 20, weight: selected ? .semibold : .regular))
+      }
+      Text(item.label)
+        .font(.system(size: 11, weight: selected ? .semibold : .regular))
+    }
+    .foregroundStyle(selected ? selectedColor : unselectedColor)
+    .frame(maxWidth: .infinity)
+    .padding(.vertical, 8)
+    .padding(.horizontal, 6)
+    // Selection pill — the visible "clicked" feedback the native TabView shows.
+    .background(Capsule().fill(selectionFill(selected)))
+    .animation(.spring(response: 0.3, dampingFraction: 0.8), value: selected)
+  }
+
+  private func tabButton(_ index: Int, _ item: TabBarItem) -> some View {
+    Button(action: {
+      model.currentIndex = index
+      model.onIndexChanged?(index)
+    }) {
+      tabContent(item, selected: model.currentIndex == index)
+        .contentShape(Capsule())
+    }
+    .buttonStyle(.plain)
+  }
+
   var body: some View {
     if #available(iOS 26.0, *) {
-      GlassEffectContainer(spacing: 0) {
-        HStack(spacing: 0) {
-          ForEach(Array(model.items.enumerated()), id: \.offset) { index, item in
-            Button(action: {
-              model.currentIndex = index
-              model.onIndexChanged?(index)
-            }) {
-              VStack(spacing: 4) {
-                if let symbol = item.sfSymbol {
-                  Image(systemName: symbol)
-                    .font(.system(size: 20))
-                }
-                Text(item.label)
-                  .font(.system(size: 11, weight: model.currentIndex == index ? .semibold : .regular))
-              }
-              .foregroundStyle(model.currentIndex == index ? .primary : .secondary)
-              .frame(maxWidth: .infinity)
-              .padding(.vertical, 8)
+      GlassEffectContainer(spacing: 16) {
+        HStack(spacing: 16) {
+          HStack(spacing: 4) {
+            ForEach(Array(model.items.enumerated()), id: \.offset) { index, item in
+              tabButton(index, item)
+            }
+          }
+          .padding(.horizontal, 8)
+          .glassEffect(.regular.interactive(), in: .capsule)
+
+          if let accessory = model.accessorySymbol {
+            Button(action: { model.onAccessoryTap?() }) {
+              Image(systemName: accessory)
+                .font(.system(size: 20))
+                .foregroundStyle(accent)
+                .frame(width: 52, height: 52)
+                .contentShape(Circle())
             }
             .buttonStyle(.plain)
+            .glassEffect(.regular.interactive(), in: .circle)
           }
         }
-        .padding(.horizontal, 8)
       }
     } else {
-      HStack(spacing: 0) {
+      HStack(spacing: 4) {
         ForEach(Array(model.items.enumerated()), id: \.offset) { index, item in
-          Button(action: {
-            model.currentIndex = index
-            model.onIndexChanged?(index)
-          }) {
-            VStack(spacing: 4) {
-              if let symbol = item.sfSymbol {
-                Image(systemName: symbol)
-                  .font(.system(size: 20))
-              }
-              Text(item.label)
-                .font(.system(size: 11, weight: model.currentIndex == index ? .semibold : .regular))
-            }
-            .foregroundStyle(model.currentIndex == index ? .blue : .secondary)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-          }
-          .buttonStyle(.plain)
+          tabButton(index, item)
         }
       }
       .padding(.horizontal, 8)
-      .background(.ultraThinMaterial)
+      .background(.ultraThinMaterial, in: Capsule())
     }
   }
 }

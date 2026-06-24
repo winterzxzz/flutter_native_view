@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 
 import 'demos/activity_indicator_demo.dart';
 import 'demos/button_demo.dart';
-import 'demos/button_group_demo.dart';
 import 'demos/color_picker_demo.dart';
 import 'demos/container_demo.dart';
 import 'demos/date_picker_demo.dart';
-import 'demos/icon_button_demo.dart';
 import 'demos/menu_demo.dart';
 import 'demos/navigation_bar_demo.dart';
 import 'demos/progress_view_demo.dart';
@@ -28,12 +26,10 @@ class DemoEntry {
 
 final List<DemoEntry> demos = <DemoEntry>[
   DemoEntry('ActivityIndicator', () => buildActivityIndicatorDemo()),
-  DemoEntry('Button', () => const ButtonDemo()),
-  DemoEntry('ButtonGroup', () => buildButtonGroupDemo()),
+  DemoEntry('Buttons', () => const ButtonDemo()),
   DemoEntry('ColorPicker', () => buildColorPickerDemo()),
   DemoEntry('Container', () => buildContainerDemo()),
   DemoEntry('DatePicker', () => buildDatePickerDemo()),
-  DemoEntry('IconButton', () => const IconButtonDemo()),
   DemoEntry('Menu', () => const MenuDemo()),
   DemoEntry('NavigationBar', () => buildNavigationBarDemo()),
   DemoEntry('ProgressView', () => buildProgressViewDemo()),
@@ -67,8 +63,26 @@ class Gallery extends StatelessWidget {
                 context,
                 MaterialPageRoute<void>(
                   builder: (_) => Scaffold(
-                    appBar: AppBar(title: Text(entry.title)),
-                    body: Center(child: entry.builder()),
+                    extendBodyBehindAppBar: true,
+                    appBar: AppBar(
+                      title: Text(entry.title),
+                      backgroundColor: Colors.transparent,
+                      elevation: 0,
+                    ),
+                    body: DecoratedBox(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Color(0xFF1B1530),
+                            Color(0xFF0E1426),
+                            Color(0xFF06121A),
+                          ],
+                        ),
+                      ),
+                      child: SafeArea(child: Center(child: entry.builder())),
+                    ),
                   ),
                 ),
               );
