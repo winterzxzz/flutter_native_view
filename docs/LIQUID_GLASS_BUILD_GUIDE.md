@@ -349,11 +349,11 @@ noted. **Do not start the modal group (Sheet/Alert/Popover) until the
 | 10 | NavigationBar | `glass_navigation_bar` | M | fixed-h | tap | ⬜ |
 | 11 | Toolbar | `glass_toolbar` | M | fixed-h | tap | ⬜ |
 | 12 | Menu | `glass_menu` | M | intrinsic | tap | ⬜ |
-| 13 | DatePicker | `glass_date_picker` | M | intrinsic | eager | ⬜ |
-| 14 | ColorPicker | `glass_color_picker` | M | intrinsic | tap | ⬜ |
+| 13 | DatePicker | `glass_date_picker` | M | intrinsic | eager | ✅ |
+| 14 | ColorPicker | `glass_color_picker` | M | intrinsic | tap | ✅ |
 | 15 | ActivityIndicator | `glass_activity_indicator` | S | fixed | none | ✅ |
 | 16 | ProgressView | `glass_progress` | S | parent-w/fixed-h | none | ✅ |
-| 17 | ButtonGroup | `glass_button_group` | M | intrinsic | tap | ⬜ |
+| 17 | ButtonGroup | `glass_button_group` | M | intrinsic | tap | ✅ |
 | 0a | **Presenter (shared)** | n/a (modal host) | L | n/a | n/a | ⬜ |
 | 18 | Sheet | via presenter | M | n/a | n/a | ⬜ (needs 0a) |
 | 19 | Alert | via presenter | M | n/a | n/a | ⬜ (needs 0a) |

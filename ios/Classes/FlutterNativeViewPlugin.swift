@@ -10,6 +10,7 @@ public class FlutterNativeViewPlugin: NSObject, FlutterPlugin {
   static let datePickerViewType = "flutter_native_view/glass_date_picker"
   static let iconButtonViewType = "flutter_native_view/glass_icon_button"
   static let progressViewType = "flutter_native_view/glass_progress"
+  static let searchBarViewType = "flutter_native_view/glass_search_bar"
   static let segmentedViewType = "flutter_native_view/glass_segmented"
   static let sliderViewType = "flutter_native_view/glass_slider"
   static let stepperViewType = "flutter_native_view/glass_stepper"

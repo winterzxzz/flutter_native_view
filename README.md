@@ -19,8 +19,10 @@ material looks like the system glass. Concept follows
 | --- | --- |
 | `LiquidGlassActivityIndicator` | Native SwiftUI `ProgressView(.circular)`. Fixed size. |
 | `LiquidGlassButton` / `.heading` | Native button; `label` rendered in SwiftUI. Auto-sizes via an intrinsic-size handshake. |
+| `LiquidGlassButtonGroup` | Row of glass buttons sharing one `GlassEffectContainer`. |
+| `LiquidGlassColorPicker` | Native SwiftUI `ColorPicker`. Intrinsic size. |
 | `LiquidGlassContainer` | Decorative glass panel. Stack Flutter content on top. |
-| `LiquidGlassIconButton` | Native SF Symbol button; auto-sizes via intrinsic-size handshake. |
+| `LiquidGlassDatePicker` | Native SwiftUI `DatePicker`. Intrinsic size, eager gesture. |
 | `LiquidGlassProgressView` | Native linear `ProgressView`. Parent width, fixed height. |
 | `LiquidGlassSlider` | Native SwiftUI `Slider`. Parent width, fixed height, eager gesture. |
 | `LiquidGlassStepper` | Native SwiftUI `Stepper`. Auto-sizes via intrinsic-size handshake. |
