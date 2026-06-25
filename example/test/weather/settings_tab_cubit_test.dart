@@ -31,13 +31,16 @@ void main() {
     );
 
     blocTest<SettingsCubit, TempUnit>(
-      'setUnit with same value still emits (Cubit behavior)',
+      'setUnit dedupes only after the first emission (Cubit behavior)',
       build: () => SettingsCubit(),
       act: (cubit) {
+        // Seed state is celsius. Cubit suppresses a state equal to the current
+        // one ONLY once it has emitted at least once (the `_emitted` flag), so
+        // the first setUnit(celsius) still emits, the second is deduped.
         cubit.setUnit(TempUnit.celsius);
         cubit.setUnit(TempUnit.celsius);
       },
-      expect: () => [TempUnit.celsius, TempUnit.celsius],
+      expect: () => const [TempUnit.celsius],
     );
   });
 

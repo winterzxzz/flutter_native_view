@@ -27,8 +27,11 @@ class WeatherCubit extends Cubit<WeatherState> {
     final Either<Failure, Location> locationResult =
         await _repository.search(query);
 
-    locationResult.fold(
-      (Failure failure) => emit(WeatherError(failure.message)),
+    // Await the forecast branch so `search` (and therefore `retry`) does not
+    // complete before the terminal state is emitted. fold's callbacks must both
+    // return a Future for the await to cover the success path.
+    await locationResult.fold(
+      (Failure failure) async => emit(WeatherError(failure.message)),
       (Location location) => _fetchForecast(location),
     );
   }
