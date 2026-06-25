@@ -5,6 +5,7 @@ public class FlutterNativeViewPlugin: NSObject, FlutterPlugin {
   static let activityIndicatorViewType = "flutter_native_view/glass_activity_indicator"
   static let buttonGroupViewType = "flutter_native_view/glass_button_group"
   static let buttonViewType = "flutter_native_view/glass_button"
+  static let checkboxViewType = "flutter_native_view/glass_checkbox"
   static let colorPickerViewType = "flutter_native_view/glass_color_picker"
   static let containerViewType = "flutter_native_view/glass_container"
   static let datePickerViewType = "flutter_native_view/glass_date_picker"
@@ -34,6 +35,8 @@ public class FlutterNativeViewPlugin: NSObject, FlutterPlugin {
       GlassButtonGroupViewFactory(messenger: messenger), withId: buttonGroupViewType)
     registrar.register(
       GlassButtonViewFactory(messenger: messenger), withId: buttonViewType)
+    registrar.register(
+      GlassCheckboxViewFactory(messenger: messenger), withId: checkboxViewType)
     registrar.register(
       GlassColorPickerViewFactory(messenger: messenger), withId: colorPickerViewType)
     registrar.register(

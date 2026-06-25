@@ -12,6 +12,8 @@ class CardDemo extends StatefulWidget {
 class _CardDemoState extends State<CardDemo> {
   bool _wifi = true;
   bool _bluetooth = false;
+  bool _agree = false;
+  bool _news = true;
   int _taps = 0;
 
   @override
@@ -70,8 +72,34 @@ class _CardDemoState extends State<CardDemo> {
               ],
             ),
           ),
+          const SizedBox(height: 16),
+
+          LiquidGlassCard(
+            tint: const Color(0xFFFF9F0A),
+            child: Column(
+              children: <Widget>[
+                _checkRow('I agree to the terms', _agree,
+                    (bool v) => setState(() => _agree = v)),
+                const SizedBox(height: 12),
+                _checkRow('Send me product news', _news,
+                    (bool v) => setState(() => _news = v)),
+              ],
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _checkRow(String label, bool value, ValueChanged<bool> onChanged) {
+    return Row(
+      children: <Widget>[
+        LiquidGlassCheckbox(value: value, onChanged: onChanged),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 15)),
+        ),
+      ],
     );
   }
 }

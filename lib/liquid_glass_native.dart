@@ -7,6 +7,7 @@ export 'src/liquid_glass_alert.dart';
 export 'src/liquid_glass_button.dart';
 export 'src/liquid_glass_button_group.dart';
 export 'src/liquid_glass_card.dart';
+export 'src/liquid_glass_checkbox.dart';
 export 'src/liquid_glass_color_picker.dart';
 export 'src/liquid_glass_container.dart';
 export 'src/liquid_glass_date_picker.dart';
