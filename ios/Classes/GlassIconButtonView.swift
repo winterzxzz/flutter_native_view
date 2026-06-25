@@ -83,6 +83,7 @@ final class GlassIconButtonModel: ObservableObject {
   @Published var tint: UIColor?
   @Published var cornerRadius: CGFloat?
   @Published var interactive: Bool
+  @Published var respectAccessibility: Bool
   var onPressed: (() -> Void)?
 
   init(args: [String: Any]) {
@@ -92,6 +93,7 @@ final class GlassIconButtonModel: ObservableObject {
     tint = GlassColor.fromARGB(args["tint"] as? Int)
     cornerRadius = (args["cornerRadius"] as? Double).map { CGFloat($0) }
     interactive = args["interactive"] as? Bool ?? true
+    respectAccessibility = args["respectAccessibility"] as? Bool ?? true
   }
 
   func apply(args: [String: Any]) {
@@ -101,12 +103,14 @@ final class GlassIconButtonModel: ObservableObject {
     tint = GlassColor.fromARGB(args["tint"] as? Int)
     cornerRadius = (args["cornerRadius"] as? Double).map { CGFloat($0) }
     interactive = args["interactive"] as? Bool ?? interactive
+    respectAccessibility = args["respectAccessibility"] as? Bool ?? respectAccessibility
   }
 }
 
 @available(iOS 16.0, *)
 struct GlassIconButtonRoot: View {
   @ObservedObject var model: GlassIconButtonModel
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   private func shape() -> AnyShape {
     if let r = model.cornerRadius {
@@ -143,7 +147,9 @@ struct GlassIconButtonRoot: View {
   @available(iOS 26.0, *)
   private func resolvedGlass() -> Glass {
     var glass = Glass.regular
-    if model.interactive { glass = glass.interactive() }
+    let interactive = GlassAccessibility.interactive(
+      model.interactive, respect: model.respectAccessibility, reduceMotion: reduceMotion)
+    if interactive { glass = glass.interactive() }
     if let tint = model.tint { glass = glass.tint(Color(uiColor: tint)) }
     return glass
   }

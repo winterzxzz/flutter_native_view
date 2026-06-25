@@ -51,16 +51,19 @@ final class GlassContainerPlatformView: NSObject, FlutterPlatformView {
 final class GlassContainerModel: ObservableObject {
   @Published var tint: UIColor?
   @Published var cornerRadius: CGFloat
+  @Published var respectAccessibility: Bool
 
   init(args: [String: Any]) {
     tint = GlassColor.fromARGB(args["tint"] as? Int)
     cornerRadius = (args["cornerRadius"] as? Double).map { CGFloat($0) } ?? 20
+    respectAccessibility = args["respectAccessibility"] as? Bool ?? true
   }
 }
 
 @available(iOS 16.0, *)
 struct GlassContainerRoot: View {
   @ObservedObject var model: GlassContainerModel
+  @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
   private let defaultTint = UIColor(white: 1, alpha: 0.12)
 
@@ -69,7 +72,12 @@ struct GlassContainerRoot: View {
   }
 
   var body: some View {
-    if #available(iOS 26.0, *) {
+    if GlassAccessibility.solidFallback(
+      respect: model.respectAccessibility, reduceTransparency: reduceTransparency)
+    {
+      // Reduce Transparency: render an opaque tinted surface instead of glass.
+      shape().fill(Color(uiColor: model.tint ?? UIColor.secondarySystemBackground))
+    } else if #available(iOS 26.0, *) {
       GlassEffectContainer(spacing: 0) {
         shape()
           .fill(.clear)
