@@ -5,14 +5,25 @@ import 'package:flutter/services.dart';
 
 const String _kMenuViewType = 'flutter_native_view/glass_menu';
 
+/// A single entry inside a [LiquidGlassMenu].
 class MenuItem {
   const MenuItem({required this.id, required this.title, this.sfSymbol});
 
+  /// Stable identifier passed to [LiquidGlassMenu.onSelected] when tapped.
   final String id;
+
+  /// Visible row text.
   final String title;
+
+  /// Optional SF Symbol shown beside the title.
   final String? sfSymbol;
 }
 
+/// A native pull-down menu button with Liquid Glass styling on iOS 26+.
+///
+/// Tapping the button presents a native menu of [items]; the selected item's
+/// id is reported through [onSelected]. On non-iOS platforms it falls back to a
+/// Material [PopupMenuButton].
 class LiquidGlassMenu extends StatefulWidget {
   const LiquidGlassMenu({
     super.key,
@@ -23,10 +34,19 @@ class LiquidGlassMenu extends StatefulWidget {
     this.tint,
   });
 
+  /// Text shown on the menu button itself.
   final String label;
+
+  /// The selectable rows presented when the menu opens.
   final List<MenuItem> items;
+
+  /// Called with the [MenuItem.id] of the tapped row.
   final ValueChanged<String> onSelected;
+
+  /// Optional SF Symbol shown on the button before the label.
   final String? sfSymbol;
+
+  /// Optional glass tint color.
   final Color? tint;
 
   @override

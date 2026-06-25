@@ -64,7 +64,7 @@ For a widget named `Foo`:
 | viewType id | `flutter_native_view/glass_foo` |
 | Channel name | `flutter_native_view/glass_foo/<viewId>` |
 
-- Export the Dart class from `lib/flutter_native_view.dart`.
+- Export the Dart class from `lib/liquid_glass_native.dart`.
 - Register the factory in `ios/Classes/FlutterNativeViewPlugin.swift`.
 - Colors cross the boundary as **ARGB32 ints**: Dart `color.toARGB32()` →
   Swift `GlassColor.fromARGB(_:)` (already exists in `ios/Classes/GlassColor.swift`).
@@ -446,7 +446,7 @@ native presentation (iOS 26 sheets adopt glass). Fallbacks: `showModalBottomShee
 Each widget task touches only:
 - `lib/src/liquid_glass_<name>.dart` (new)
 - `ios/Classes/Glass<Name>View.swift` (new)
-- one line in `lib/flutter_native_view.dart` (export)
+- one line in `lib/liquid_glass_native.dart` (export)
 - one factory + one `registrar.register(...)` in `FlutterNativeViewPlugin.swift`
 - one demo entry in the example (see below)
 - one row in `README.md` table + flip its status in §7
@@ -456,7 +456,7 @@ Each widget task touches only:
   by viewType. Each agent inserts its `let fooFactory = …` and
   `registrar.register(fooFactory, withId: …)` in sorted position. Conflicts are
   trivial 1-line merges; rebase before pushing.
-- **`lib/flutter_native_view.dart`**: exports sorted alphabetically; same rule.
+- **`lib/liquid_glass_native.dart`**: exports sorted alphabetically; same rule.
 - **Example app**: do **not** all edit `example/lib/main.dart`. Instead each
   widget gets its own demo file `example/lib/demos/<name>_demo.dart` exposing a
   `Widget build()` and a title; a single `gallery.dart` lists them. The gallery

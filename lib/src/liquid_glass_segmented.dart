@@ -5,6 +5,12 @@ import 'package:flutter/services.dart';
 
 const String _kSegmentedViewType = 'flutter_native_view/glass_segmented';
 
+/// A native iOS segmented control (`UISegmentedControl`) with Liquid Glass
+/// styling on iOS 26+. On non-iOS platforms it falls back to a Material
+/// [SegmentedButton].
+///
+/// This is a controlled widget: pass [selectedIndex] in and update your state
+/// from [onChanged].
 class LiquidGlassSegmentedControl extends StatefulWidget {
   const LiquidGlassSegmentedControl({
     super.key,
@@ -14,9 +20,16 @@ class LiquidGlassSegmentedControl extends StatefulWidget {
     this.tint,
   });
 
+  /// Ordered segment titles.
   final List<String> segments;
+
+  /// Index into [segments] of the currently selected segment.
   final int selectedIndex;
+
+  /// Called with the index of the newly selected segment.
   final ValueChanged<int> onChanged;
+
+  /// Optional tint color for the selected segment.
   final Color? tint;
 
   @override

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_native_view/flutter_native_view.dart';
+import 'package:liquid_glass_native/liquid_glass_native.dart';
 
 Widget buildTabBarDemo() => const TabBarDemo();
 
@@ -83,11 +83,6 @@ class _TabBarDemoState extends State<TabBarDemo> {
               accessorySymbol: 'magnifyingglass',
               onAccessoryTap: () {
                 setState(() => _searchTaps++);
-                // DIAGNOSTIC: proves the accessory tap reached Flutter.
-                debugPrint('[search] accessory tapped #$_searchTaps');
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Search tapped #$_searchTaps')),
-                );
                 LiquidGlassSheet.show(context: context, title: 'Search');
               },
               tint: Color(0xFFFF375F),

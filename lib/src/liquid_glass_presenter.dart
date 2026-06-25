@@ -3,14 +3,26 @@ import 'package:flutter/services.dart';
 
 const String _kPresenterChannel = 'flutter_native_view/presenter';
 
+/// One selectable action in a [LiquidGlassAlert].
 class AlertButton {
   const AlertButton({required this.id, required this.label, this.destructive = false});
 
+  /// Identifier returned when this button is tapped.
   final String id;
+
+  /// Visible button text.
   final String label;
+
+  /// When `true`, the button is styled as a destructive action (red on iOS).
   final bool destructive;
 }
 
+/// Low-level bridge to the native presenter that drives sheets, alerts, and
+/// popovers over a single method channel.
+///
+/// Prefer the high-level helpers ([LiquidGlassSheet], [LiquidGlassAlert],
+/// [LiquidGlassPopover]); call these methods directly only when you need to
+/// present without a [BuildContext]. All methods are no-ops off iOS.
 class LiquidGlassPresenter {
   static final MethodChannel _channel = MethodChannel(_kPresenterChannel);
 

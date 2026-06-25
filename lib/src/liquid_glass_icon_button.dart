@@ -5,6 +5,13 @@ import 'package:flutter/services.dart';
 
 const String _kIconButtonViewType = 'flutter_native_view/glass_icon_button';
 
+/// A compact, icon-only button rendered by native SwiftUI with authentic Apple
+/// Liquid Glass on iOS 26+. On non-iOS platforms it falls back to a Material
+/// [IconButton.filled].
+///
+/// The icon is an SF Symbol drawn natively, so the glass material wraps real
+/// content. Use it for circular glass actions such as a favorite or close
+/// button.
 class LiquidGlassIconButton extends StatefulWidget {
   const LiquidGlassIconButton({
     super.key,

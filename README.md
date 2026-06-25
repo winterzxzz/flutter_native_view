@@ -1,17 +1,20 @@
-# flutter_native_view
+# liquid_glass_native
 
-Native **SwiftUI Liquid Glass** widgets for Flutter. Controls are rendered by
-SwiftUI and embedded via platform views, so on **iOS 26+** they use Apple's
-authentic `glassEffect` material (interactive, with `GlassEffectContainer`).
-Older iOS and other platforms fall back gracefully.
+**Native Apple Liquid Glass UI for Flutter** — real SwiftUI/UIKit glass widgets,
+not a `BackdropFilter` blur fake. Controls are rendered by SwiftUI and embedded
+via platform views, so on **iOS 26+** they use Apple's authentic `glassEffect`
+material (interactive, with `GlassEffectContainer`). Older iOS and other
+platforms fall back gracefully.
+
+> Keywords: liquid glass, iOS 26, SwiftUI, Cupertino, native platform view,
+> glassmorphism, glass UI kit, Apple design.
 
 ## Why native
 
 Apple's Liquid Glass samples the real native render tree and reacts to touch.
 Faking it with a Flutter `BackdropFilter` looks flat, because the glass needs to
 wrap **real native content**. Here the label/switch are rendered natively, so the
-material looks like the system glass. Concept follows
-[native_liquid_glass](https://github.com/tienanh306201z/native_liquid_glass).
+material looks like the system glass.
 
 ## Widgets
 
@@ -34,7 +37,7 @@ material looks like the system glass. Concept follows
 ## Usage
 
 ```dart
-import 'package:flutter_native_view/flutter_native_view.dart';
+import 'package:liquid_glass_native/liquid_glass_native.dart';
 
 LiquidGlassButton(
   label: 'Add',

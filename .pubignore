@@ -1,0 +1,6 @@
+# Internal Harness / agent tooling — kept in the repo, excluded from the
+# published pub.dev archive so the package stays lean and user-focused.
+/docs/
+/scripts/
+/AGENTS.md
+/CLAUDE.md

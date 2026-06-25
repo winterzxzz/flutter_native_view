@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_native_view/flutter_native_view.dart';
+import 'package:liquid_glass_native/liquid_glass_native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 // On the test host (non-iOS) the widgets render their Material fallbacks, which

@@ -5,6 +5,11 @@ import 'package:flutter/services.dart';
 
 const String _kSearchBarViewType = 'flutter_native_view/glass_search_bar';
 
+/// A native iOS search field (`UISearchTextField`) with Liquid Glass styling on
+/// iOS 26+. On non-iOS platforms it falls back to a Material [TextField].
+///
+/// This is a controlled field: pass the current [text] in and update your state
+/// from [onChanged]. The native field is full width with a fixed height.
 class LiquidGlassSearchBar extends StatefulWidget {
   const LiquidGlassSearchBar({
     super.key,
@@ -14,9 +19,16 @@ class LiquidGlassSearchBar extends StatefulWidget {
     this.placeholder,
   });
 
+  /// Current query text shown in the field (controlled value).
   final String text;
+
+  /// Called on every keystroke with the new query text.
   final ValueChanged<String> onChanged;
+
+  /// Called when the user submits (return key) with the final query text.
   final ValueChanged<String>? onSubmitted;
+
+  /// Optional greyed-out placeholder shown while the field is empty.
   final String? placeholder;
 
   @override
