@@ -28,8 +28,30 @@ final class GlassPresenter: NSObject {
     }
   }
 
+  /// Resolves the view controller to present from.
+  ///
+  /// `registrar.viewController` (captured at registration, held weakly) is
+  /// `nil` under UIScene lifecycle, so fall back to the key window's root and
+  /// walk to the top-most presented controller — otherwise `present` is a
+  /// silent no-op.
+  private func presentingViewController() -> UIViewController? {
+    var root = viewController
+    if root == nil {
+      root = UIApplication.shared.connectedScenes
+        .compactMap { $0 as? UIWindowScene }
+        .flatMap { $0.windows }
+        .first(where: { $0.isKeyWindow })?
+        .rootViewController
+    }
+    var top = root
+    while let presented = top?.presentedViewController {
+      top = presented
+    }
+    return top
+  }
+
   private func presentSheet(args: [String: Any], result: @escaping FlutterResult) {
-    guard let vc = viewController else { result(nil); return }
+    guard let vc = presentingViewController() else { result(nil); return }
     guard #available(iOS 16.0, *) else { result(nil); return }
     let title = args["title"] as? String ?? ""
     let sheetView = GlassSheetRoot(
@@ -51,7 +73,7 @@ final class GlassPresenter: NSObject {
   }
 
   private func presentAlert(args: [String: Any], result: @escaping FlutterResult) {
-    guard let vc = viewController else { result(nil); return }
+    guard let vc = presentingViewController() else { result(nil); return }
     let title = args["title"] as? String ?? ""
     let message = args["message"] as? String ?? ""
     let buttons = args["buttons"] as? [[String: Any]] ?? []
@@ -69,7 +91,7 @@ final class GlassPresenter: NSObject {
   }
 
   private func presentPopover(args: [String: Any], result: @escaping FlutterResult) {
-    guard let vc = viewController else { result(nil); return }
+    guard let vc = presentingViewController() else { result(nil); return }
     guard #available(iOS 16.0, *) else { result(nil); return }
     let title = args["title"] as? String ?? ""
     let popoverView = GlassPopoverRoot(

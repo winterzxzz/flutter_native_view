@@ -20,9 +20,14 @@ public class FlutterNativeViewPlugin: NSObject, FlutterPlugin {
   static let toggleViewType = "flutter_native_view/glass_toggle"
   static let toolbarViewType = "flutter_native_view/glass_toolbar"
 
+  /// Strong reference so the presenter (and its method-channel handler) is not
+  /// deallocated after `register` returns. Without this, the channel handler's
+  /// `[weak self]` resolves to nil and every present call silently no-ops.
+  private static var presenter: GlassPresenter?
+
   public static func register(with registrar: FlutterPluginRegistrar) {
     let messenger = registrar.messenger()
-    _ = GlassPresenter(messenger: messenger, viewController: registrar.viewController)
+    presenter = GlassPresenter(messenger: messenger, viewController: registrar.viewController)
     registrar.register(
       GlassActivityIndicatorViewFactory(messenger: messenger), withId: activityIndicatorViewType)
     registrar.register(

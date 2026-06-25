@@ -81,7 +81,15 @@ class _TabBarDemoState extends State<TabBarDemo> {
               currentIndex: _index,
               onTap: (int index) => setState(() => _index = index),
               accessorySymbol: 'magnifyingglass',
-              onAccessoryTap: () => setState(() => _searchTaps++),
+              onAccessoryTap: () {
+                setState(() => _searchTaps++);
+                // DIAGNOSTIC: proves the accessory tap reached Flutter.
+                debugPrint('[search] accessory tapped #$_searchTaps');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Search tapped #$_searchTaps')),
+                );
+                LiquidGlassSheet.show(context: context, title: 'Search');
+              },
               tint: Color(0xFFFF375F),
               scrollController: _scroll,
             ),
