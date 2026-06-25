@@ -27,9 +27,13 @@ import 'weather/injection.dart';
 typedef DemoBuilder = Widget Function();
 
 class DemoEntry {
-  const DemoEntry(this.title, this.builder);
+  const DemoEntry(this.title, this.builder, {this.fullScreen = false});
   final String title;
   final DemoBuilder builder;
+
+  /// When true, the demo is pushed full-bleed without the [_DemoPage] nav
+  /// chrome (it provides its own navigation, e.g. the Weather App).
+  final bool fullScreen;
 }
 
 final List<DemoEntry> demos = <DemoEntry>[
@@ -54,7 +58,7 @@ final List<DemoEntry> demos = <DemoEntry>[
   DemoEntry('Weather App', () {
     configureWeatherDependencies();
     return const WeatherApp();
-  }),
+  }, fullScreen: true),
 ];
 
 class Gallery extends StatelessWidget {
@@ -89,10 +93,12 @@ class Gallery extends StatelessWidget {
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute<void>(
-                      builder: (_) => _DemoPage(
-                        title: entry.title,
-                        child: entry.builder(),
-                      ),
+                      builder: (_) => entry.fullScreen
+                          ? entry.builder()
+                          : _DemoPage(
+                              title: entry.title,
+                              child: entry.builder(),
+                            ),
                     ),
                   ),
                 );

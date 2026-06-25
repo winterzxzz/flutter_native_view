@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:liquid_glass_native/liquid_glass_native.dart';
 
 import '../../cubit/settings_cubit.dart';
+import '../../cubit/app_theme_cubit.dart';
+import '../../../shared/app_theme.dart';
 import '../../../shared/formatters.dart';
 
 /// Settings tab: temperature unit toggle and about info.
@@ -13,6 +15,8 @@ class SettingsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final unit = context.watch<SettingsCubit>().state;
     final selectedIndex = unit == TempUnit.celsius ? 0 : 1;
+    final themeMode = context.watch<AppThemeCubit>().state;
+    final themeIndex = themeMode == AppThemeMode.light ? 0 : 1;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 100),
@@ -43,6 +47,25 @@ class SettingsTab extends StatelessWidget {
             onChanged: (index) {
               context.read<SettingsCubit>().setUnit(
                     index == 0 ? TempUnit.celsius : TempUnit.fahrenheit,
+                  );
+            },
+          ),
+          const SizedBox(height: 32),
+          const Text(
+            'Appearance',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 10),
+          LiquidGlassSegmentedControl(
+            segments: const ['Light', 'Dark'],
+            selectedIndex: themeIndex,
+            onChanged: (index) {
+              context.read<AppThemeCubit>().setMode(
+                    index == 0 ? AppThemeMode.light : AppThemeMode.dark,
                   );
             },
           ),

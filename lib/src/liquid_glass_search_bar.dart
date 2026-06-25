@@ -17,6 +17,9 @@ class LiquidGlassSearchBar extends StatefulWidget {
     required this.onChanged,
     this.onSubmitted,
     this.placeholder,
+    this.textColor,
+    this.iconColor,
+    this.cursorColor,
   });
 
   /// Current query text shown in the field (controlled value).
@@ -31,6 +34,16 @@ class LiquidGlassSearchBar extends StatefulWidget {
   /// Optional greyed-out placeholder shown while the field is empty.
   final String? placeholder;
 
+  /// Color of the typed text. Defaults to white (suits a dark glass surface).
+  final Color? textColor;
+
+  /// Color of the leading magnifying-glass icon. Defaults to [textColor] at
+  /// 70% opacity.
+  final Color? iconColor;
+
+  /// Color of the text cursor / selection tint. Defaults to [textColor].
+  final Color? cursorColor;
+
   @override
   State<LiquidGlassSearchBar> createState() => _LiquidGlassSearchBarState();
 }
@@ -38,10 +51,18 @@ class LiquidGlassSearchBar extends StatefulWidget {
 class _LiquidGlassSearchBarState extends State<LiquidGlassSearchBar> {
   MethodChannel? _channel;
 
-  Map<String, dynamic> _params() => <String, dynamic>{
-        'text': widget.text,
-        'placeholder': widget.placeholder ?? '',
-      };
+  Map<String, dynamic> _params() {
+    final Color text = widget.textColor ?? Colors.white;
+    final Color icon = widget.iconColor ?? text.withValues(alpha: 0.7);
+    final Color cursor = widget.cursorColor ?? text;
+    return <String, dynamic>{
+      'text': widget.text,
+      'placeholder': widget.placeholder ?? '',
+      'textColor': text.toARGB32(),
+      'iconColor': icon.toARGB32(),
+      'cursorColor': cursor.toARGB32(),
+    };
+  }
 
   void _onCreated(int id) {
     final MethodChannel channel = MethodChannel('$_kSearchBarViewType/$id');
@@ -68,6 +89,9 @@ class _LiquidGlassSearchBarState extends State<LiquidGlassSearchBar> {
   @override
   Widget build(BuildContext context) {
     if (defaultTargetPlatform != TargetPlatform.iOS) {
+      final Color text = widget.textColor ?? Colors.white;
+      final Color icon = widget.iconColor ?? text.withValues(alpha: 0.7);
+      final Color cursor = widget.cursorColor ?? text;
       return TextField(
         controller: TextEditingController.fromValue(
           TextEditingValue(
@@ -77,9 +101,12 @@ class _LiquidGlassSearchBarState extends State<LiquidGlassSearchBar> {
         ),
         onChanged: widget.onChanged,
         onSubmitted: widget.onSubmitted,
+        style: TextStyle(color: text),
+        cursorColor: cursor,
         decoration: InputDecoration(
           hintText: widget.placeholder,
-          prefixIcon: const Icon(Icons.search),
+          hintStyle: TextStyle(color: icon),
+          prefixIcon: Icon(Icons.search, color: icon),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(24),
           ),

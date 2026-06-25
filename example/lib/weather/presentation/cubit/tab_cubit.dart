@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-/// Cubit that manages the current tab index (0..2).
+/// Cubit that manages the current tab index (0 = Home, 1 = Settings).
 class TabCubit extends Cubit<int> {
   TabCubit() : super(0);
 

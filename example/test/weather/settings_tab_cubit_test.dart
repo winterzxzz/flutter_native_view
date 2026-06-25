@@ -59,13 +59,13 @@ void main() {
     );
 
     blocTest<TabCubit, int>(
-      'switchTo(2) then switchTo(0)',
+      'switchTo(1) then switchTo(0)',
       build: () => TabCubit(),
       act: (cubit) {
-        cubit.switchTo(2);
+        cubit.switchTo(1);
         cubit.switchTo(0);
       },
-      expect: () => [2, 0],
+      expect: () => [1, 0],
     );
   });
 }

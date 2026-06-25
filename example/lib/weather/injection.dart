@@ -7,6 +7,7 @@ import 'domain/repositories/weather_repository.dart';
 import 'presentation/cubit/weather_cubit.dart';
 import 'presentation/cubit/settings_cubit.dart';
 import 'presentation/cubit/tab_cubit.dart';
+import 'presentation/cubit/app_theme_cubit.dart';
 
 final getIt = GetIt.instance;
 
@@ -31,4 +32,5 @@ void configureWeatherDependencies() {
   );
   getIt.registerFactory<SettingsCubit>(() => SettingsCubit());
   getIt.registerFactory<TabCubit>(() => TabCubit());
+  getIt.registerFactory<AppThemeCubit>(() => AppThemeCubit());
 }

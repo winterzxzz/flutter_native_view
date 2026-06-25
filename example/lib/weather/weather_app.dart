@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'presentation/cubit/weather_cubit.dart';
 import 'presentation/cubit/settings_cubit.dart';
 import 'presentation/cubit/tab_cubit.dart';
+import 'presentation/cubit/app_theme_cubit.dart';
 import 'presentation/pages/weather_home.dart';
 import 'injection.dart';
 
@@ -25,15 +26,20 @@ class WeatherApp extends StatelessWidget {
         BlocProvider<TabCubit>(
           create: (_) => getIt<TabCubit>(),
         ),
+        BlocProvider<AppThemeCubit>(
+          create: (_) => getIt<AppThemeCubit>(),
+        ),
       ],
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
+      // No nested MaterialApp — embed in the gallery's Navigator so the
+      // floating back button can pop back to the demo list. Theme only
+      // applies the Inter text theme.
+      child: Theme(
+        data: Theme.of(context).copyWith(
           textTheme: GoogleFonts.interTextTheme(
             Theme.of(context).textTheme,
           ),
         ),
-        home: const WeatherHome(),
+        child: const WeatherHome(),
       ),
     );
   }

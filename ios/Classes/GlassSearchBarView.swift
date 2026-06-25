@@ -74,12 +74,30 @@ final class GlassSearchBarPlatformView: NSObject, FlutterPlatformView {
 final class GlassSearchBarModel: ObservableObject {
   @Published var text: String
   @Published var placeholder: String
+  let textColor: Color
+  let iconColor: Color
+  let cursorColor: Color
   var onChanged: ((String) -> Void)?
   var onSubmitted: ((String) -> Void)?
 
   init(args: [String: Any]) {
     text = args["text"] as? String ?? ""
     placeholder = args["placeholder"] as? String ?? "Search"
+    textColor = GlassSearchBarModel.color(args["textColor"], fallback: .white)
+    iconColor = GlassSearchBarModel.color(
+      args["iconColor"], fallback: .white.opacity(0.7))
+    cursorColor = GlassSearchBarModel.color(args["cursorColor"], fallback: .white)
+  }
+
+  /// Decodes an ARGB int (as sent by Flutter's `Color.toARGB32()`) into a
+  /// SwiftUI `Color`, falling back when absent.
+  private static func color(_ value: Any?, fallback: Color) -> Color {
+    guard let argb = (value as? NSNumber)?.uint32Value else { return fallback }
+    let a = Double((argb >> 24) & 0xFF) / 255.0
+    let r = Double((argb >> 16) & 0xFF) / 255.0
+    let g = Double((argb >> 8) & 0xFF) / 255.0
+    let b = Double(argb & 0xFF) / 255.0
+    return Color(.sRGB, red: r, green: g, blue: b, opacity: a)
   }
 }
 
@@ -90,12 +108,22 @@ struct GlassSearchBarRoot: View {
   var body: some View {
     HStack(spacing: 8) {
       Image(systemName: "magnifyingglass")
-        .foregroundColor(.secondary)
-      TextField(model.placeholder, text: $model.text)
-        .onSubmit { model.onSubmitted?(model.text) }
-        .onChange(of: model.text) { newValue in
-          model.onChanged?(newValue)
+        .foregroundColor(model.iconColor)
+      ZStack(alignment: .leading) {
+        // Custom placeholder so its color is customizable (SwiftUI's built-in
+        // TextField placeholder color isn't directly settable on iOS 16).
+        if model.text.isEmpty {
+          Text(model.placeholder)
+            .foregroundColor(model.iconColor)
         }
+        TextField("", text: $model.text)
+          .foregroundColor(model.textColor)
+          .tint(model.cursorColor)
+          .onSubmit { model.onSubmitted?(model.text) }
+          .onChange(of: model.text) { newValue in
+            model.onChanged?(newValue)
+          }
+      }
     }
     .padding(.horizontal, 14)
     .padding(.vertical, 10)
