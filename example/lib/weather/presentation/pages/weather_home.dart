@@ -61,6 +61,9 @@ class WeatherHome extends StatelessWidget {
                 bottom: 0,
                 child: LiquidGlassTabBar(
                   currentIndex: tabIndex,
+                  brightness: themeMode == AppThemeMode.dark
+                      ? Brightness.dark
+                      : Brightness.light,
                   onTap: (index) => context.read<TabCubit>().switchTo(index),
                   items: const [
                     TabItem(label: 'Home', sfSymbol: 'cloud.sun'),

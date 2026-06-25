@@ -23,6 +23,7 @@ class LiquidGlassTabBar extends StatefulWidget {
     this.accessorySymbol,
     this.onAccessoryTap,
     this.tint,
+    this.brightness,
     this.scrollController,
   });
 
@@ -49,6 +50,10 @@ class LiquidGlassTabBar extends StatefulWidget {
 
   /// Called when the accessory button is tapped.
   final VoidCallback? onAccessoryTap;
+
+  /// Forces the bar's light/dark appearance instead of following the device
+  /// system trait. When `null`, the system trait is used.
+  final Brightness? brightness;
 
   @override
   State<LiquidGlassTabBar> createState() => _LiquidGlassTabBarState();
@@ -89,6 +94,7 @@ class _LiquidGlassTabBarState extends State<LiquidGlassTabBar> {
         'currentIndex': widget.currentIndex,
         'accessorySymbol': widget.accessorySymbol,
         'tint': (widget.tint ?? LiquidGlassTheme.of(context).tint)?.toARGB32(),
+        'brightness': widget.brightness?.name,
         'respectAccessibility': LiquidGlassTheme.of(context).respectAccessibility,
       };
 
@@ -133,7 +139,8 @@ class _LiquidGlassTabBarState extends State<LiquidGlassTabBar> {
     }
     if (oldWidget.currentIndex != widget.currentIndex ||
         oldWidget.accessorySymbol != widget.accessorySymbol ||
-        oldWidget.tint != widget.tint) {
+        oldWidget.tint != widget.tint ||
+        oldWidget.brightness != widget.brightness) {
       _channel?.invokeMethod<void>('updateConfig', _params());
     }
   }
@@ -141,7 +148,7 @@ class _LiquidGlassTabBarState extends State<LiquidGlassTabBar> {
   @override
   Widget build(BuildContext context) {
     if (defaultTargetPlatform != TargetPlatform.iOS) {
-      return NavigationBar(
+      final Widget bar = NavigationBar(
         selectedIndex: widget.currentIndex,
         onDestinationSelected: widget.onTap,
         destinations: widget.items
@@ -152,6 +159,11 @@ class _LiquidGlassTabBarState extends State<LiquidGlassTabBar> {
                   label: item.label,
                 ))
             .toList(growable: false),
+      );
+      if (widget.brightness == null) return bar;
+      return Theme(
+        data: ThemeData(brightness: widget.brightness!),
+        child: bar,
       );
     }
 

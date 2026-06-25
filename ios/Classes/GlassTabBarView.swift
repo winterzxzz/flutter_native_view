@@ -42,6 +42,7 @@ struct GlassTabBarConfig {
   let currentIndex: Int
   let selectedColor: UIColor?
   let accessorySymbol: String?
+  let brightness: String?
 
   init(args: [String: Any]) {
     tabs = (args["items"] as? [[String: Any]] ?? []).map {
@@ -54,6 +55,16 @@ struct GlassTabBarConfig {
     currentIndex = min(max(0, requested), max(tabs.count - 1, 0))
     selectedColor = GlassColor.fromARGB(args["tint"] as? Int)
     accessorySymbol = args["accessorySymbol"] as? String
+    brightness = args["brightness"] as? String
+  }
+
+  /// Maps a Flutter `Brightness` name to a UIKit interface style.
+  static func interfaceStyle(_ name: String?) -> UIUserInterfaceStyle {
+    switch name {
+    case "light": return .light
+    case "dark": return .dark
+    default: return .unspecified
+    }
   }
 }
 
@@ -81,6 +92,9 @@ final class GlassNativeTabBarView: UIView, UITabBarControllerDelegate {
   /// UIKit watches its `contentOffset` to minimize/expand the bar.
   private let proxyScroll = UIScrollView()
 
+  /// Current forced interface style (driven by Flutter's `brightness`).
+  private var interfaceStyle: UIUserInterfaceStyle
+
   init(
     config: GlassTabBarConfig,
     onIndexChanged: @escaping (Int) -> Void,
@@ -89,6 +103,7 @@ final class GlassNativeTabBarView: UIView, UITabBarControllerDelegate {
     self.config = config
     self.onIndexChanged = onIndexChanged
     self.onAccessoryTap = onAccessoryTap
+    self.interfaceStyle = GlassTabBarConfig.interfaceStyle(config.brightness)
     super.init(frame: .zero)
 
     backgroundColor = .clear
@@ -136,8 +151,23 @@ final class GlassNativeTabBarView: UIView, UITabBarControllerDelegate {
     let tabBar = tabBarController.tabBar
     tabBar.clipsToBounds = false
     applySelectedColor()
+    applyInterfaceStyle()
     configureProxyScroll()
     embed()
+  }
+
+  /// Forces the tab bar's light/dark appearance to match the app theme
+  /// instead of following the device system trait.
+  private func applyInterfaceStyle() {
+    overrideUserInterfaceStyle = interfaceStyle
+    tabBarController.overrideUserInterfaceStyle = interfaceStyle
+  }
+
+  /// Updates the forced interface style at runtime (from `updateConfig`).
+  func setBrightness(_ name: String?) {
+    interfaceStyle = GlassTabBarConfig.interfaceStyle(name)
+    applyInterfaceStyle()
+    applySelectedColor()
   }
 
   /// Registers the hidden proxy scroll view as the selected tab's content
@@ -313,9 +343,11 @@ final class GlassTabBarPlatformView: NSObject, FlutterPlatformView {
     channel.setMethodCallHandler { [weak self] call, result in
       switch call.method {
       case "updateConfig":
-        if let index = (call.arguments as? [String: Any])?["currentIndex"] as? Int {
+        let args = call.arguments as? [String: Any]
+        if let index = args?["currentIndex"] as? Int {
           self?.barView?.setSelectedIndex(index)
         }
+        self?.barView?.setBrightness(args?["brightness"] as? String)
         result(nil)
       case "setScrollOffset":
         if let pixels = (call.arguments as? NSNumber)?.doubleValue {
