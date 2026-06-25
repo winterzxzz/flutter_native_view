@@ -33,6 +33,14 @@ final class GlassContainerPlatformView: NSObject, FlutterPlatformView {
     container.backgroundColor = .clear
     super.init()
 
+    // Wire up tap-back channel when the card is interactive.
+    if model.interactive {
+      let channel = FlutterMethodChannel(
+        name: "flutter_native_view/glass_container/\(viewId)",
+        binaryMessenger: messenger)
+      model.onPressed = { channel.invokeMethod("onPressed", arguments: nil) }
+    }
+
     if #available(iOS 16.0, *) {
       let hosting = UIHostingController(rootView: GlassContainerRoot(model: model))
       hosting.view.backgroundColor = .clear
@@ -52,11 +60,14 @@ final class GlassContainerModel: ObservableObject {
   @Published var tint: UIColor?
   @Published var cornerRadius: CGFloat
   @Published var respectAccessibility: Bool
+  @Published var interactive: Bool
+  var onPressed: (() -> Void)?
 
   init(args: [String: Any]) {
     tint = GlassColor.fromARGB(args["tint"] as? Int)
     cornerRadius = (args["cornerRadius"] as? Double).map { CGFloat($0) } ?? 20
     respectAccessibility = args["respectAccessibility"] as? Bool ?? true
+    interactive = args["interactive"] as? Bool ?? false
   }
 }
 
@@ -79,9 +90,19 @@ struct GlassContainerRoot: View {
       shape().fill(Color(uiColor: model.tint ?? UIColor.secondarySystemBackground))
     } else if #available(iOS 26.0, *) {
       GlassEffectContainer(spacing: 0) {
-        shape()
-          .fill(.clear)
-          .glassEffect(resolvedGlass(), in: shape())
+        if model.interactive {
+          Button(action: { model.onPressed?() }) {
+            shape()
+              .fill(.clear)
+              .contentShape(shape())
+              .glassEffect(resolvedGlass(), in: shape())
+          }
+          .buttonStyle(.plain)
+        } else {
+          shape()
+            .fill(.clear)
+            .glassEffect(resolvedGlass(), in: shape())
+        }
       }
     } else {
       shape()
@@ -96,12 +117,11 @@ struct GlassContainerRoot: View {
   @available(iOS 26.0, *)
   private func resolvedGlass() -> Glass {
     var glass = Glass.regular
-    // Apple's Liquid Glass `.tint(_:)` expects a subtle, translucent color.
-    // The incoming tint is a fully-opaque, fully-saturated color, so applying
-    // it directly turns the glass into a flat solid block. Soften it so the
-    // surface stays frosted and lets the backdrop show through.
     if let tint = model.tint {
       glass = glass.tint(Color(uiColor: tint).opacity(0.5))
+    }
+    if model.interactive {
+      glass = glass.interactive()
     }
     return glass
   }

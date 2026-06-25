@@ -45,17 +45,14 @@ class LiquidGlassCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final double radius =
         borderRadius ?? LiquidGlassTheme.of(context).borderRadius ?? 16;
-    Widget card = ClipRRect(
+    return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: LiquidGlassContainer(
         tint: tint,
         borderRadius: radius,
+        onPressed: onTap,
         child: Padding(padding: padding, child: child),
       ),
     );
-    if (onTap != null) {
-      card = GestureDetector(onTap: onTap, behavior: HitTestBehavior.opaque, child: card);
-    }
-    return card;
   }
 }

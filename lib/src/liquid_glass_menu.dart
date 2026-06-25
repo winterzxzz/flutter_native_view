@@ -34,6 +34,7 @@ class LiquidGlassMenu extends StatefulWidget {
     required this.onSelected,
     this.sfSymbol,
     this.tint,
+    this.iconColor,
   });
 
   /// Text shown on the menu button itself.
@@ -50,6 +51,10 @@ class LiquidGlassMenu extends StatefulWidget {
 
   /// Optional glass tint color.
   final Color? tint;
+
+  /// Optional icon/label foreground color. When set, overrides the tint for
+  /// the button's symbol and text so they can be white regardless of tint.
+  final Color? iconColor;
 
   @override
   State<LiquidGlassMenu> createState() => _LiquidGlassMenuState();
@@ -70,6 +75,7 @@ class _LiquidGlassMenuState extends State<LiquidGlassMenu> {
                 })
             .toList(),
         'tint': (widget.tint ?? LiquidGlassTheme.of(context).tint)?.toARGB32(),
+        'iconColor': widget.iconColor?.toARGB32(),
         'respectAccessibility': LiquidGlassTheme.of(context).respectAccessibility,
       };
 
@@ -99,7 +105,8 @@ class _LiquidGlassMenuState extends State<LiquidGlassMenu> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.label != widget.label ||
         oldWidget.items != widget.items ||
-        oldWidget.tint != widget.tint) {
+        oldWidget.tint != widget.tint ||
+        oldWidget.iconColor != widget.iconColor) {
       _applySize(_channel?.invokeMapMethod<String, dynamic>('updateConfig', _params()) ??
           Future<Map<String, dynamic>?>.value());
     }

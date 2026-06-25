@@ -118,6 +118,7 @@ class _MenuDemoState extends State<MenuDemo> {
                       child: LiquidGlassMenu(
                         label: 'Options',
                         sfSymbol: 'gearshape',
+                        iconColor: Colors.white,
                         items: const [
                           MenuItem(
                             id: 'edit',
@@ -176,6 +177,7 @@ class _MenuButton extends StatelessWidget {
           sfSymbol: symbol,
           onPressed: onSelected,
           tint: const Color(0xFF0A84FF),
+          iconColor: Colors.white,
         ),
         const SizedBox(height: 6),
         Text(

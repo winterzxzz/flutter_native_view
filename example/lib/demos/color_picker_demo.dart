@@ -118,6 +118,7 @@ class _ColorPickerDemoState extends State<ColorPickerDemo> {
                         const SizedBox(width: 12),
                         LiquidGlassIconButton(
                           sfSymbol: 'heart.fill',
+                          iconColor: Colors.white,
                           onPressed: () {},
                           tint: _color,
                         ),

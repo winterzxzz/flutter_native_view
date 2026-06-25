@@ -87,7 +87,7 @@ class _ThemeDemoState extends State<ThemeDemo> {
                         children: <Widget>[
                           LiquidGlassButton(label: 'Primary', onPressed: () {}),
                           const SizedBox(width: 12),
-                          LiquidGlassIconButton(sfSymbol: 'star.fill', onPressed: () {}),
+                          LiquidGlassIconButton(sfSymbol: 'star.fill', onPressed: () {}, iconColor: Colors.white),
                         ],
                       ),
                       const SizedBox(height: 12),

@@ -83,6 +83,7 @@ final class GlassMenuModel: ObservableObject {
   @Published var sfSymbol: String
   @Published var items: [[String: Any]]
   @Published var tint: UIColor?
+  @Published var iconColor: UIColor?
   var onSelected: ((String) -> Void)?
 
   init(args: [String: Any]) {
@@ -90,6 +91,7 @@ final class GlassMenuModel: ObservableObject {
     sfSymbol = args["sfSymbol"] as? String ?? ""
     items = args["items"] as? [[String: Any]] ?? []
     tint = GlassColor.fromARGB(args["tint"] as? Int)
+    iconColor = GlassColor.fromARGB(args["iconColor"] as? Int)
   }
 
   func apply(args: [String: Any]) {
@@ -97,6 +99,7 @@ final class GlassMenuModel: ObservableObject {
     sfSymbol = args["sfSymbol"] as? String ?? sfSymbol
     items = args["items"] as? [[String: Any]] ?? items
     tint = GlassColor.fromARGB(args["tint"] as? Int)
+    iconColor = GlassColor.fromARGB(args["iconColor"] as? Int)
   }
 }
 
@@ -113,7 +116,11 @@ struct GlassMenuRoot: View {
       Text(model.label)
         .font(.system(size: 17, weight: .semibold))
     }
-    .foregroundStyle(model.tint.map { Color(uiColor: $0) } ?? .primary)
+    .foregroundStyle(
+      model.iconColor.map { Color(uiColor: $0) }
+      ?? model.tint.map { Color(uiColor: $0) }
+      ?? .primary
+    )
     .padding(.horizontal, 16)
     .padding(.vertical, 10)
   }
