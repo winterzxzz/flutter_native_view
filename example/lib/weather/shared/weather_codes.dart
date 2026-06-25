@@ -1,4 +1,4 @@
-import 'dart:ui' show Color, Gradient, Offset;
+import 'package:flutter/painting.dart';
 
 /// Visual representation of a weather condition.
 ///
@@ -32,11 +32,11 @@ class WeatherVisual {
   int get hashCode => Object.hash(label, gradient, sfSymbol);
 }
 
-/// Creates a [Gradient.linear] from top center to bottom center with [colors].
-Gradient _gradient(List<Color> colors) => Gradient.linear(
-      const Offset(0, 0),
-      const Offset(0, 1),
-      colors,
+/// Creates a [LinearGradient] from top center to bottom center with [colors].
+LinearGradient _gradient(List<Color> colors) => LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: colors,
     );
 
 /// Day-time weather visuals keyed by WMO condition group.

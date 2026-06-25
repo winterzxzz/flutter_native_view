@@ -21,6 +21,8 @@ import 'demos/tab_bar_demo.dart';
 import 'demos/text_field_demo.dart';
 import 'demos/theme_demo.dart';
 import 'demos/toolbar_demo.dart';
+import 'weather/weather_app.dart';
+import 'weather/injection.dart';
 
 typedef DemoBuilder = Widget Function();
 
@@ -49,6 +51,10 @@ final List<DemoEntry> demos = <DemoEntry>[
   DemoEntry('TextField', () => buildTextFieldDemo()),
   DemoEntry('Theme & A11y', () => buildThemeDemo()),
   DemoEntry('Toolbar', () => buildToolbarDemo()),
+  DemoEntry('Weather App', () {
+    configureWeatherDependencies();
+    return const WeatherApp();
+  }),
 ];
 
 class Gallery extends StatelessWidget {
