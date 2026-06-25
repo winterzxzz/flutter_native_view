@@ -116,10 +116,15 @@ class _LiquidGlassContainerState extends State<LiquidGlassContainer> {
     if (widget.child == null) return glass;
 
     // Size the glass to the child and layer the content on top.
+    // When interactive, the child must not absorb taps — the native glass
+    // Button underneath needs them for the liquid-glass morph animation.
     return Stack(
       children: <Widget>[
         Positioned.fill(child: glass),
-        widget.child!,
+        if (widget.onPressed != null)
+          IgnorePointer(child: widget.child!)
+        else
+          widget.child!,
       ],
     );
   }

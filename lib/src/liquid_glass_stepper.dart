@@ -93,7 +93,7 @@ class _LiquidGlassStepperState extends State<LiquidGlassStepper> {
       );
     }
 
-    final Size size = _size ?? const Size(140, 44);
+    final Size size = _size ?? const Size(160, 44);
     return SizedBox(
       width: size.width,
       height: size.height,

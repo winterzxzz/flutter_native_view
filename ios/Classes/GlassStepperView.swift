@@ -105,21 +105,86 @@ final class GlassStepperModel: ObservableObject {
 struct GlassStepperRoot: View {
   @ObservedObject var model: GlassStepperModel
 
+  private let buttonSize: CGFloat = 36
+
   var body: some View {
-    if #available(iOS 26.0, *) {
-      stepperContent
-        .glassEffect(Glass.regular.interactive(), in: Capsule())
-    } else {
-      stepperContent
+    HStack(spacing: 0) {
+      decrementButton
+        .clipShape(Circle())
+      valueLabel
+      incrementButton
+        .clipShape(Circle())
+    }
+    .padding(.horizontal, 4)
+    .frame(height: buttonSize)
+  }
+
+  // MARK: - Buttons
+
+  private var decrementButton: some View {
+    Button(action: { decrement() }) {
+      Image(systemName: "minus")
+        .font(.system(size: 15, weight: .medium, design: .rounded))
+        .foregroundStyle(.primary)
+        .frame(width: buttonSize, height: buttonSize)
+    }
+    .buttonStyle(.plain)
+    .disabled(model.min != nil && model.value <= model.min!)
+    .opacity(model.min != nil && model.value <= model.min! ? 0.35 : 1)
+    .modifier(ConditionalGlassModifier())
+  }
+
+  private var incrementButton: some View {
+    Button(action: { increment() }) {
+      Image(systemName: "plus")
+        .font(.system(size: 15, weight: .medium, design: .rounded))
+        .foregroundStyle(.primary)
+        .frame(width: buttonSize, height: buttonSize)
+    }
+    .buttonStyle(.plain)
+    .disabled(model.max != nil && model.value >= model.max!)
+    .opacity(model.max != nil && model.value >= model.max! ? 0.35 : 1)
+    .modifier(ConditionalGlassModifier())
+  }
+
+  // MARK: - Value
+
+  private var valueLabel: some View {
+    Text("\(model.value)")
+      .font(.system(size: 17, weight: .semibold, design: .rounded))
+      .foregroundStyle(.primary)
+      .frame(minWidth: 40)
+      .contentTransition(.numericText())
+      .animation(.easeInOut(duration: 0.15), value: model.value)
+  }
+
+  // MARK: - Glass
+
+  private struct ConditionalGlassModifier: ViewModifier {
+    func body(content: Content) -> some View {
+      if #available(iOS 26.0, *) {
+        content.glassEffect(Glass.regular.interactive(), in: Circle())
+      } else {
+        content
+      }
     }
   }
 
-  private var stepperContent: some View {
-    Stepper(value: Binding(get: { model.value }, set: { model.value = $0; model.onChanged?($0) }),
-            in: (model.min ?? Int.min)...(model.max ?? Int.max),
-            step: model.step) {
-      Text("\(model.value)")
+  // MARK: - Actions
+
+  private func decrement() {
+    let newVal = model.value - model.step
+    if model.min == nil || newVal >= model.min! {
+      model.value = newVal
+      model.onChanged?(newVal)
     }
-    .fixedSize()
+  }
+
+  private func increment() {
+    let newVal = model.value + model.step
+    if model.max == nil || newVal <= model.max! {
+      model.value = newVal
+      model.onChanged?(newVal)
+    }
   }
 }
