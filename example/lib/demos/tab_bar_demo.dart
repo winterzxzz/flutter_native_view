@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_native_view/flutter_native_view.dart';
 
-const String tabBarDemoTitle = 'Liquid Glass Tab Bar';
-
 Widget buildTabBarDemo() => const TabBarDemo();
 
 class TabBarDemo extends StatefulWidget {
@@ -17,6 +15,12 @@ class _TabBarDemoState extends State<TabBarDemo> {
   final ScrollController _scroll = ScrollController();
 
   static const List<String> _labels = ['Today', 'News+', 'Sports', 'Audio'];
+  static const List<IconData> _icons = [
+    Icons.newspaper,
+    Icons.grid_view,
+    Icons.sports_soccer,
+    Icons.headphones,
+  ];
 
   @override
   void dispose() {
@@ -29,21 +33,40 @@ class _TabBarDemoState extends State<TabBarDemo> {
     return SizedBox.expand(
       child: Stack(
         children: [
-          // Scrollable content — scroll down to minimize the bar, up to expand.
           ListView.builder(
             controller: _scroll,
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 140),
             itemCount: 40,
             itemBuilder: (_, i) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text(
-                '${_labels[_index]}  ·  row $i'
-                '${i == 0 ? '   (search tapped: $_searchTaps)' : ''}',
-                style: const TextStyle(color: Colors.white70, fontSize: 16),
+              child: Card(
+                color: Colors.white.withValues(alpha: 0.05),
+                child: ListTile(
+                  leading: Icon(
+                    _icons[_index],
+                    color: Colors.white54,
+                    size: 24,
+                  ),
+                  title: Text(
+                    '${_labels[_index]}  \u00b7  article $i',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 15,
+                    ),
+                  ),
+                  subtitle: Text(
+                    i == 0
+                        ? 'Search tapped: $_searchTaps'
+                        : 'Swipe down to explore',
+                    style: const TextStyle(
+                      color: Colors.white38,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
-          // Native tab bar pinned to the bottom edge.
           Positioned(
             left: 0,
             right: 0,
@@ -59,7 +82,7 @@ class _TabBarDemoState extends State<TabBarDemo> {
               onTap: (int index) => setState(() => _index = index),
               accessorySymbol: 'magnifyingglass',
               onAccessoryTap: () => setState(() => _searchTaps++),
-              tint: const Color(0xFFFF375F),
+              tint: Color(0xFFFF375F),
               scrollController: _scroll,
             ),
           ),

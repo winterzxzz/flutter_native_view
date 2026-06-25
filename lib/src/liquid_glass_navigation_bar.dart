@@ -16,11 +16,15 @@ class LiquidGlassNavigationBar extends StatefulWidget {
     this.title,
     this.leading = const [],
     this.trailing = const [],
+    this.tint,
   });
 
   final String? title;
   final List<BarAction> leading;
   final List<BarAction> trailing;
+
+  /// Optional tint color applied to the bar.
+  final Color? tint;
 
   @override
   State<LiquidGlassNavigationBar> createState() =>
@@ -43,6 +47,7 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar> {
         'trailing': widget.trailing
             .map((a) => <String, dynamic>{'id': a.id, 'sfSymbol': a.sfSymbol})
             .toList(growable: false),
+        'tint': widget.tint?.toARGB32(),
       };
 
   void _onCreated(int id) {
@@ -67,6 +72,7 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar> {
   Widget build(BuildContext context) {
     if (defaultTargetPlatform != TargetPlatform.iOS) {
       return AppBar(
+        backgroundColor: widget.tint,
         title: widget.title != null ? Text(widget.title!) : null,
         leading: widget.leading.isNotEmpty
             ? IconButton(

@@ -11,16 +11,14 @@ const String _kContainerViewType = 'flutter_native_view/glass_container';
 /// it renders authentic Apple glass; on older iOS it uses standard SwiftUI
 /// styling; on non-iOS platforms it falls back to a Material [DecoratedBox].
 ///
-/// Place content on top by wrapping both in a [Stack]:
+/// Provide a [child] to render Flutter content layered on top of the glass
+/// surface:
 /// ```dart
-/// Stack(
-///   children: [
-///     const LiquidGlassContainer(),
-///     Padding(
-///       padding: EdgeInsets.all(16),
-///       child: Text('Content'),
-///     ),
-///   ],
+/// LiquidGlassContainer(
+///   child: Padding(
+///     padding: EdgeInsets.all(16),
+///     child: Text('Content'),
+///   ),
 /// )
 /// ```
 class LiquidGlassContainer extends StatefulWidget {
@@ -28,6 +26,7 @@ class LiquidGlassContainer extends StatefulWidget {
     super.key,
     this.tint,
     this.borderRadius,
+    this.child,
   });
 
   /// Optional glass tint color.
@@ -36,6 +35,10 @@ class LiquidGlassContainer extends StatefulWidget {
   /// Corner radius. When `null`, uses a continuous rounded rectangle with
   /// a default radius of 20.
   final double? borderRadius;
+
+  /// Optional Flutter content rendered on top of the glass surface. The glass
+  /// sizes itself to the child; when `null` it expands to fill its parent.
+  final Widget? child;
 
   @override
   State<LiquidGlassContainer> createState() => _LiquidGlassContainerState();
@@ -58,16 +61,26 @@ class _LiquidGlassContainerState extends State<LiquidGlassContainer> {
             color: widget.tint?.withValues(alpha: 0.30) ?? Colors.white.withValues(alpha: 0.22),
           ),
         ),
-        child: const SizedBox.expand(),
+        child: widget.child ?? const SizedBox.expand(),
       );
     }
 
-    return UiKitView(
+    final Widget glass = UiKitView(
       viewType: _kContainerViewType,
       creationParams: _params(),
       creationParamsCodec: const StandardMessageCodec(),
       onPlatformViewCreated: (int id) {},
       gestureRecognizers: const <Factory<OneSequenceGestureRecognizer>>{},
+    );
+
+    if (widget.child == null) return glass;
+
+    // Size the glass to the child and layer the content on top.
+    return Stack(
+      children: <Widget>[
+        Positioned.fill(child: glass),
+        widget.child!,
+      ],
     );
   }
 }

@@ -72,7 +72,7 @@ struct GlassContainerRoot: View {
     if #available(iOS 26.0, *) {
       GlassEffectContainer(spacing: 0) {
         shape()
-          .fill(.white.opacity(0.15))
+          .fill(.clear)
           .glassEffect(resolvedGlass(), in: shape())
       }
     } else {
@@ -88,7 +88,13 @@ struct GlassContainerRoot: View {
   @available(iOS 26.0, *)
   private func resolvedGlass() -> Glass {
     var glass = Glass.regular
-    if let tint = model.tint { glass = glass.tint(Color(uiColor: tint)) }
+    // Apple's Liquid Glass `.tint(_:)` expects a subtle, translucent color.
+    // The incoming tint is a fully-opaque, fully-saturated color, so applying
+    // it directly turns the glass into a flat solid block. Soften it so the
+    // surface stays frosted and lets the backdrop show through.
+    if let tint = model.tint {
+      glass = glass.tint(Color(uiColor: tint).opacity(0.5))
+    }
     return glass
   }
 }
