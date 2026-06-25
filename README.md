@@ -23,16 +23,43 @@ material looks like the system glass.
 | `LiquidGlassActivityIndicator` | Native SwiftUI `ProgressView(.circular)`. Fixed size. |
 | `LiquidGlassButton` / `.heading` | Native button; `label` rendered in SwiftUI. Auto-sizes via an intrinsic-size handshake. |
 | `LiquidGlassButtonGroup` | Row of glass buttons sharing one `GlassEffectContainer`. |
+| `LiquidGlassCard` | Glass surface with padding, rounded clip, and optional `onTap`. |
+| `LiquidGlassCheckbox` | Native glass checkbox; shows a checkmark when checked. |
 | `LiquidGlassColorPicker` | Native SwiftUI `ColorPicker`. Intrinsic size. |
-| `LiquidGlassContainer` | Decorative glass panel. Stack Flutter content on top. |
+| `LiquidGlassContainer` | Glass panel; pass a `child` to layer content on the glass. |
 | `LiquidGlassDatePicker` | Native SwiftUI `DatePicker`. Intrinsic size, eager gesture. |
+| `LiquidGlassIconButton` | Native icon-only glass button (SF Symbol). |
+| `LiquidGlassLabeledSwitch` | A label + `LiquidGlassSwitch` setting row. |
+| `LiquidGlassMenu` | Native pull-down menu button. |
 | `LiquidGlassNavigationBar` | Native top bar with title + leading/trailing actions. |
 | `LiquidGlassProgressView` | Native linear `ProgressView`. Parent width, fixed height. |
+| `LiquidGlassSearchBar` | Native search field. Parent width, fixed height. |
+| `LiquidGlassSegmentedControl` | Native segmented control. |
 | `LiquidGlassSlider` | Native SwiftUI `Slider`. Parent width, fixed height, eager gesture. |
 | `LiquidGlassStepper` | Native SwiftUI `Stepper`. Auto-sizes via intrinsic-size handshake. |
 | `LiquidGlassSwitch` | Native SwiftUI `Toggle`; state bridged back to Dart. |
-| `LiquidGlassTabBar` | Native horizontal tab bar with `GlassEffectContainer`. |
+| `LiquidGlassTabBar` | Native tab bar; per-tab `badge`, search accessory, minimize-on-scroll. |
+| `LiquidGlassTextField` | Native glass text input; placeholder, secure entry. |
 | `LiquidGlassToolbar` | Native bottom toolbar with action buttons. |
+
+Modals (`LiquidGlassSheet`, `LiquidGlassAlert`, `LiquidGlassPopover`) are
+presented natively via the shared presenter.
+
+## Theming & accessibility
+
+Wrap your app in a `LiquidGlassTheme` to set app-wide defaults; each widget
+resolves a value as **explicit param ?? theme ?? built-in default**:
+
+```dart
+LiquidGlassTheme(
+  data: const LiquidGlassThemeData(tint: Color(0xFF0A84FF), borderRadius: 16),
+  child: MyApp(),
+);
+```
+
+When `respectAccessibility` is on (the default), native glass honors the system
+*Reduce Transparency* (opaque surface) and *Reduce Motion* (no interactive
+touch response) settings.
 
 ## Usage
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.0
+
+- Add `LiquidGlassTheme` / `LiquidGlassThemeData` for app-wide glass defaults
+  (tint, borderRadius, interactive, labelColor, respectAccessibility). Widgets
+  resolve as explicit param ?? theme ?? built-in default.
+- Honor system accessibility settings in native glass: *Reduce Transparency*
+  (opaque surface) and *Reduce Motion* (no interactive touch response).
+- New widgets: `LiquidGlassCard`, `LiquidGlassLabeledSwitch`,
+  `LiquidGlassCheckbox`, `LiquidGlassTextField`.
+- `TabItem` gains an optional `badge`.
+
 ## 0.0.2
 
 - Add `example/example.md` with curated usage snippets so the pub.dev Example
