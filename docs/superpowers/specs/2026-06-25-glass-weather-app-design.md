@@ -7,9 +7,21 @@
 ## Goal
 
 A real-feel iOS weather app that showcases the native liquid glass widgets layered
-over a condition-driven gradient backdrop. One main screen, city search via
-Open-Meteo (no API key, no GPS permission). Lives inside the existing example app
-and is launched from a button in the gallery.
+over a condition-driven gradient backdrop. A native `LiquidGlassTabBar` (bottom)
+splits the app into three tabs — **Weather**, **Search**, **Settings**. City search
+via Open-Meteo (no API key, no GPS permission). Lives inside the existing example
+app and is launched from a button in the gallery.
+
+### Tabs (bottom `LiquidGlassTabBar`)
+
+| Tab | SF Symbol | Content |
+| --- | --- | --- |
+| Weather | `cloud.sun` | Current conditions card + hourly strip + 7-day list (scroll). Backdrop reflects current condition. Empty state prompts "Search a city". |
+| Search | `magnifyingglass` | `LiquidGlassSearchBar` + recent/last result. Picking a city loads weather and auto-switches to the Weather tab. |
+| Settings | `gearshape` | Units toggle (°C / °F) via `LiquidGlassSegmentedControl`, plus an About glass card (data source credit, lib name). |
+
+The tab bar replaces the in-content segmented Hourly/7-Day toggle: the Weather tab
+shows hourly strip and 7-day list stacked in one scroll.
 
 ## Constraints
 
@@ -43,7 +55,8 @@ Two endpoints, no auth:
    - `hourly=temperature_2m,weather_code` (next 24h sliced client-side from `time` array)
    - `daily=weather_code,temperature_2m_max,temperature_2m_min` (7 days)
 
-Units: metric (Celsius, km/h) — Open-Meteo defaults. No unit toggle in v1 (YAGNI).
+Units: always fetch metric (Celsius, km/h) — Open-Meteo defaults. °C/°F is a
+display-only conversion in `formatters` driven by `SettingsCubit`; no re-fetch.
 
 ## Architecture — feature-first, layered
 
@@ -73,19 +86,23 @@ example/lib/weather/
     cubit/
       weather_cubit.dart               # search(query): geocode -> forecast -> emit
       weather_state.dart               # sealed states
+      settings_cubit.dart              # TempUnit (celsius|fahrenheit); emits TempUnit
+      tab_cubit.dart                   # current tab index 0..2; switchTo(i)
     pages/
-      weather_page.dart                # Scaffold-less: Stack(backdrop + content)
+      weather_home.dart                # Stack(backdrop + IndexedStack(tabs) + LiquidGlassTabBar)
+      tabs/
+        weather_tab.dart               # current card + hourly strip + daily list (scroll)
+        search_tab.dart                # search bar + last result; on pick -> load + switch tab
+        settings_tab.dart              # unit segmented + about card
     widgets/
       condition_backdrop.dart          # full-screen AnimatedContainer gradient
-      weather_search_header.dart       # LiquidGlassSearchBar + safe-area padding
       current_conditions_card.dart     # LiquidGlassCard, big temp block
-      forecast_toggle.dart             # LiquidGlassSegmentedControl Hourly/7-Day
       hourly_strip.dart                # horizontal ListView of LiquidGlassContainer chips
       daily_list.dart                  # column of LiquidGlassCard rows
       weather_status_view.dart         # loading (LiquidGlassActivityIndicator) / error / empty
   shared/
     weather_codes.dart                 # WMO code -> WeatherVisual(label, IconData, Gradient, isDayAware)
-    formatters.dart                    # temp rounding, hour/day label formatting
+    formatters.dart                    # temp rounding + C/F conversion, hour/day label formatting
 ```
 
 ### Why these boundaries
@@ -97,7 +114,7 @@ example/lib/weather/
 ## Data Flow
 
 ```
-SearchBar.onSubmitted(query)
+(Search tab) SearchBar.onSubmitted(query)
   -> WeatherCubit.search(query)
        emit(WeatherLoading)
        repo.search(query)  ->  Either<Failure, Location>
@@ -105,16 +122,23 @@ SearchBar.onSubmitted(query)
          right -> repo.getForecast(location) -> Either<Failure, WeatherBundle>
                     left  -> emit(WeatherError(msg))
                     right -> emit(WeatherLoaded(bundle))
+                             + TabCubit.switchTo(0)   // jump to Weather tab
 ```
+
+### Cubits
+
+- **`WeatherCubit`** — owns the search→forecast flow and `WeatherState`. Holds `_lastQuery` for Retry.
+- **`SettingsCubit`** — state is `TempUnit { celsius, fahrenheit }`; `setUnit(unit)`. Default celsius. Widgets read it (via `context.watch`) to pick formatter; no re-fetch.
+- **`TabCubit`** — state is `int` index 0..2; `switchTo(i)`. `WeatherCubit` listens-and-switches to tab 0 on a successful load (via a `BlocListener` in `weather_home.dart`, not a direct cubit→cubit call, to keep cubits decoupled).
 
 ### States (sealed `WeatherState`)
 
-- `WeatherInitial` — prompt to search a city.
+- `WeatherInitial` — empty; Weather tab shows "Search a city" prompt.
 - `WeatherLoading` — activity indicator, keep last backdrop if any.
-- `WeatherLoaded(WeatherBundle bundle, ForecastView view)` — `view` = hourly | daily (toggle lives in state so segmented control round-trips through cubit via `toggleView(view)`).
-- `WeatherError(String message)` — glass error card + Retry (re-runs last query).
+- `WeatherLoaded(WeatherBundle bundle)` — full forecast. (Hourly + daily both shown stacked; the old `ForecastView` toggle is removed since the tab bar restructures navigation.)
+- `WeatherError(String message)` — glass error card + Retry (re-runs `_lastQuery`).
 
-Cubit holds `_lastQuery` for retry. Use `equatable` via `flutter_bloc`'s recommended pattern or manual `==`; states are immutable.
+States are immutable with value equality (manual `==`/`hashCode` or `equatable`).
 
 ## UI / Visual Design
 
@@ -138,16 +162,30 @@ WMO `weather_code` + `is_day` → `WeatherVisual`:
 
 Each entry also carries: `label` (e.g. "Partly cloudy"), `IconData` (Material weather icons — no emoji), `accent` color for chips.
 
-### Layout (top → bottom, inside `Stack`)
+### Shell layout (`weather_home.dart`)
 
-1. `ConditionBackdrop` — fills screen; `AnimatedContainer(300ms, easeOut)` cross-fades gradient on condition change. Respects reduced-motion (skip animation, set instantly).
-2. `SafeArea` → `Column`:
-   - `WeatherSearchHeader` (glass search bar)
-   - scrollable body:
-     - `CurrentConditionsCard` — city name (small caps), big temp (`~96sp`, weight 200), condition label, `H {max}° L {min}°`, feels-like + humidity + wind row.
-     - `ForecastToggle` (segmented Hourly / 7-Day)
-     - `AnimatedSwitcher(250ms)` between `HourlyStrip` and `DailyList`.
-3. Overlays: `WeatherStatusView` for loading/error/empty, centered.
+`Stack`:
+1. `ConditionBackdrop` — fills screen; `AnimatedContainer(300ms, easeOut)` cross-fades gradient on current-condition change. Shared across all tabs. Respects reduced-motion (set instantly). Settings/Search tabs use the same backdrop (last known condition, or a neutral clear-day gradient if none yet).
+2. `SafeArea` → `IndexedStack(index: tabIndex)` holding the three tab bodies (IndexedStack keeps each tab's scroll/state alive).
+3. `LiquidGlassTabBar` pinned to bottom: items = Weather/Search/Settings with SF Symbols above; `currentIndex` from `TabCubit`, `onTap` → `switchTo`.
+4. `BlocListener<WeatherCubit>` → on `WeatherLoaded`, `TabCubit.switchTo(0)`.
+
+### Weather tab (`weather_tab.dart`)
+
+`BlocBuilder<WeatherCubit>`; scrollable `Column`, bottom padding clears the tab bar:
+- `CurrentConditionsCard` — city name (small caps), big temp (`~96sp`, weight 200, unit from SettingsCubit), condition label, `H {max}° L {min}°`, feels-like + humidity + wind row.
+- `HourlyStrip` (next 24h).
+- `DailyList` (7-day).
+- States other than loaded → `WeatherStatusView` centered (initial prompt / loading / error+retry).
+
+### Search tab (`search_tab.dart`)
+
+`LiquidGlassSearchBar` near top; below it a hint or the last searched city as a tappable glass card. `onSubmitted` → `WeatherCubit.search`. While loading, inline `LiquidGlassActivityIndicator`. On success the shell switches to Weather tab automatically.
+
+### Settings tab (`settings_tab.dart`)
+
+- Units: `LiquidGlassSegmentedControl(['°C','°F'])` bound to `SettingsCubit`.
+- About: `LiquidGlassCard` — "Data: Open-Meteo", "Built with liquid_glass_native".
 
 ### Spacing & type scale
 
@@ -177,10 +215,11 @@ Cubit folds `Either`; UI maps `WeatherError.message` (already human-readable, se
 | Unit under test | Type | Tool |
 | --- | --- | --- |
 | `weather_codes` mapping (code+isDay → visual) | pure unit | flutter_test |
-| `formatters` (temp round, labels) | pure unit | flutter_test |
+| `formatters` (temp round, C→F conversion, labels) | pure unit | flutter_test |
 | model `fromJson` (geo + forecast, incl. empty results) | unit | flutter_test |
 | `WeatherRepositoryImpl` error mapping (dio throws → Left) | unit | mocktail |
 | `WeatherCubit` happy path + each failure path | bloc | bloc_test + mocktail |
+| `SettingsCubit` setUnit, `TabCubit` switchTo | bloc | bloc_test |
 | key widgets render given entities (golden optional) | widget | flutter_test |
 
 ## Gallery Integration
@@ -191,8 +230,9 @@ double-registration). Existing gallery demos untouched.
 
 ## Out of Scope (v1, YAGNI)
 
-- Unit toggle (°C/°F), GPS location, saved cities / multi-city, deep links,
-  persistent cache, settings screen, widget/extension, localization beyond English.
+- GPS location, saved cities / multi-city list, deep links, persistent cache /
+  settings persistence (units reset on relaunch), widget/extension, localization
+  beyond English.
 
 ---
 
@@ -224,39 +264,39 @@ Independent, no cross-deps. Spawn together.
 ## Wave 2 — Data + State (parallel, after Wave 1)
 
 - **T4. Data layer** — owns `data/models/*`, `data/datasources/weather_remote_data_source.dart`, `data/repositories/weather_repository_impl.dart`. Depends on T1 (entities/repo iface). + `test/weather/forecast_model_test.dart`, `test/weather/weather_repository_impl_test.dart` (mocktail Dio).
-- **T5. Cubit + state** — owns `presentation/cubit/weather_cubit.dart`, `weather_state.dart`. Depends on T1 (repo iface) only — mock repo in tests, does NOT need T4 done. + `test/weather/weather_cubit_test.dart` (bloc_test + mock repo).
+- **T5. Cubits + state** — owns `presentation/cubit/weather_cubit.dart`, `weather_state.dart`, `settings_cubit.dart`, `tab_cubit.dart`. Depends on T1 (repo iface) only — mock repo in tests, does NOT need T4 done. + `test/weather/weather_cubit_test.dart`, `test/weather/settings_tab_cubit_test.dart` (bloc_test + mock repo).
 
 > T4 and T5 both depend only on T1's interface, not on each other → parallel.
 
-## Wave 3 — UI widgets (parallel, after Wave 1; T9 after Wave 2)
+## Wave 3 — UI widgets (parallel, after Wave 1)
 
-Leaf widgets take entities as args → buildable against T1 + T2/T3 only.
+Leaf widgets take entities + `TempUnit` as args → buildable against T1 + T2/T3 only (no cubit lookups inside leaf widgets).
 
-- **T6. `condition_backdrop.dart` + `weather_search_header.dart`**
-- **T7. `current_conditions_card.dart` + `forecast_toggle.dart`**
-- **T8. `hourly_strip.dart` + `daily_list.dart` + `weather_status_view.dart`**
+- **T6. `condition_backdrop.dart`** — full-screen animated gradient from `WeatherVisual`.
+- **T7. `current_conditions_card.dart`** — takes `CurrentWeather` + `Location` + `TempUnit`.
+- **T8. `hourly_strip.dart` + `daily_list.dart` + `weather_status_view.dart`** — take lists/state + `TempUnit`.
 
 > T6–T8 partition the `widgets/` folder; no shared files. Each imports entities (T1), visuals (T2), formatters (T3), and lib glass widgets.
 
-## Wave 4 — Assembly (1 agent, after Waves 2 & 3)
+## Wave 4 — Tab bodies + shell (after Waves 2 & 3)
 
-- **T9. `weather_page.dart` + `weather_app.dart` + `injection.dart` + gallery entry**
-  - Wire BlocProvider, Stack layout, connect cubit states → widgets, get_it registration, add gallery button in `example/lib/gallery.dart`.
-  - Depends on T5 (cubit), T6–T8 (widgets), T4 (registered in get_it).
+- **T9a. Tab bodies** — owns `presentation/pages/tabs/weather_tab.dart`, `search_tab.dart`, `settings_tab.dart`. Wires `BlocBuilder`/`context.watch` for WeatherCubit + SettingsCubit, composes T6–T8 widgets + lib `LiquidGlassSearchBar` / `LiquidGlassSegmentedControl` / `LiquidGlassCard`. Depends on T5, T6–T8.
+- **T9b. Shell + wiring** — owns `presentation/pages/weather_home.dart`, `weather_app.dart`, `injection.dart`, and the gallery entry in `example/lib/gallery.dart`. Builds the `Stack` + `IndexedStack` + `LiquidGlassTabBar`, multi-BlocProvider, `BlocListener` tab-switch on load, get_it registration. Depends on T9a, T4, T5.
 
-## Wave 5 — Verify (1 agent, after T9)
+> T9a then T9b (sequential: shell imports the tab bodies). One agent can do both, or two in sequence.
 
-- **T10. Verification** — `flutter analyze`, `flutter test`, run app on iOS sim, confirm: search returns weather, toggle switches hourly/daily, error path shows retry, gallery still works. Report evidence.
+## Wave 5 — Verify (1 agent, after T9b)
+
+- **T10. Verification** — `flutter analyze`, `flutter test`, run app on iOS sim, confirm: tab bar switches Weather/Search/Settings; Search loads a city and auto-jumps to Weather tab; unit toggle in Settings flips °C/°F live; error path shows retry; backdrop matches condition; gallery still works. Report evidence.
 
 ## Dependency graph
 
 ```
-T0 ──> T1 ──┬──> T4 ──┐
-            ├──> T5 ──┤
-T0 ──> T2 ──┼──> T6   │
-T0 ──> T3 ──┼──> T7   │
-            └──> T8 ──┤
-                      └──> T9 ──> T10
+T0 ──> T1 ──┬──> T4 ───────────┐
+            ├──> T5 ───────────┤
+T0 ──> T2 ──┼──> T6 ──┐        │
+T0 ──> T3 ──┼──> T7 ──┼─> T9a ─┴─> T9b ──> T10
+            └──> T8 ──┘
 ```
 
 ## Swarm contract (per agent)
