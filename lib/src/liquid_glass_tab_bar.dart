@@ -59,10 +59,18 @@ class TabItem {
   const TabItem({
     required this.label,
     this.sfSymbol,
+    this.badge,
   });
 
+  /// Tab title.
   final String label;
+
+  /// Optional SF Symbol for the tab icon.
   final String? sfSymbol;
+
+  /// Optional badge text shown on the tab (e.g. `'3'` or `'!'`). When `null`,
+  /// no badge is shown.
+  final String? badge;
 }
 
 class _LiquidGlassTabBarState extends State<LiquidGlassTabBar> {
@@ -72,6 +80,7 @@ class _LiquidGlassTabBarState extends State<LiquidGlassTabBar> {
       .map((item) => <String, dynamic>{
             'label': item.label,
             'sfSymbol': item.sfSymbol,
+            'badge': item.badge,
           })
       .toList(growable: false);
 

@@ -74,9 +74,9 @@ class _TabBarDemoState extends State<TabBarDemo> {
             child: LiquidGlassTabBar(
               items: const [
                 TabItem(label: 'Today', sfSymbol: 'newspaper'),
-                TabItem(label: 'News+', sfSymbol: 'square.grid.2x2'),
+                TabItem(label: 'News+', sfSymbol: 'square.grid.2x2', badge: '3'),
                 TabItem(label: 'Sports', sfSymbol: 'sportscourt'),
-                TabItem(label: 'Audio', sfSymbol: 'headphones'),
+                TabItem(label: 'Audio', sfSymbol: 'headphones', badge: '!'),
               ],
               currentIndex: _index,
               onTap: (int index) => setState(() => _index = index),

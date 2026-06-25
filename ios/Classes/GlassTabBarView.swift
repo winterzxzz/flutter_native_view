@@ -35,6 +35,7 @@ struct GlassTabBarConfig {
   struct Tab {
     let label: String
     let sfSymbol: String
+    let badge: String?
   }
 
   let tabs: [Tab]
@@ -44,7 +45,10 @@ struct GlassTabBarConfig {
 
   init(args: [String: Any]) {
     tabs = (args["items"] as? [[String: Any]] ?? []).map {
-      Tab(label: $0["label"] as? String ?? "", sfSymbol: $0["sfSymbol"] as? String ?? "circle")
+      Tab(
+        label: $0["label"] as? String ?? "",
+        sfSymbol: $0["sfSymbol"] as? String ?? "circle",
+        badge: $0["badge"] as? String)
     }
     let requested = args["currentIndex"] as? Int ?? 0
     currentIndex = min(max(0, requested), max(tabs.count - 1, 0))
@@ -102,6 +106,7 @@ final class GlassNativeTabBarView: UIView, UITabBarControllerDelegate {
         title: tab.label,
         image: UIImage(systemName: tab.sfSymbol),
         selectedImage: UIImage(systemName: tab.sfSymbol))
+      vc.tabBarItem.badgeValue = tab.badge
       return vc
     }
 
