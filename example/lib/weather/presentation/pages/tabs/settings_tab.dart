@@ -17,6 +17,9 @@ class SettingsTab extends StatelessWidget {
     final selectedIndex = unit == TempUnit.celsius ? 0 : 1;
     final themeMode = context.watch<AppThemeCubit>().state;
     final themeIndex = themeMode == AppThemeMode.light ? 0 : 1;
+    final brightness = themeMode == AppThemeMode.dark
+        ? Brightness.dark
+        : Brightness.light;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 100),
@@ -44,10 +47,11 @@ class SettingsTab extends StatelessWidget {
           LiquidGlassSegmentedControl(
             segments: const ['°C', '°F'],
             selectedIndex: selectedIndex,
+            brightness: brightness,
             onChanged: (index) {
               context.read<SettingsCubit>().setUnit(
-                    index == 0 ? TempUnit.celsius : TempUnit.fahrenheit,
-                  );
+                index == 0 ? TempUnit.celsius : TempUnit.fahrenheit,
+              );
             },
           ),
           const SizedBox(height: 32),
@@ -63,10 +67,11 @@ class SettingsTab extends StatelessWidget {
           LiquidGlassSegmentedControl(
             segments: const ['Light', 'Dark'],
             selectedIndex: themeIndex,
+            brightness: brightness,
             onChanged: (index) {
               context.read<AppThemeCubit>().setMode(
-                    index == 0 ? AppThemeMode.light : AppThemeMode.dark,
-                  );
+                index == 0 ? AppThemeMode.light : AppThemeMode.dark,
+              );
             },
           ),
           const SizedBox(height: 32),
@@ -85,9 +90,7 @@ class SettingsTab extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.15),
-              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

@@ -20,6 +20,7 @@ class LiquidGlassSegmentedControl extends StatefulWidget {
     required this.selectedIndex,
     required this.onChanged,
     this.tint,
+    this.brightness,
   });
 
   /// Ordered segment titles.
@@ -33,6 +34,10 @@ class LiquidGlassSegmentedControl extends StatefulWidget {
 
   /// Optional tint color for the selected segment.
   final Color? tint;
+
+  /// Forces the control's light/dark appearance instead of following the
+  /// device system trait. When `null`, the system trait is used.
+  final Brightness? brightness;
 
   @override
   State<LiquidGlassSegmentedControl> createState() =>
@@ -50,6 +55,7 @@ class _LiquidGlassSegmentedControlState
       'segments': widget.segments,
       'selectedIndex': widget.selectedIndex,
       'tint': (widget.tint ?? t.tint)?.toARGB32(),
+      'brightness': widget.brightness?.name,
       'respectAccessibility': t.respectAccessibility,
     };
   }
@@ -84,7 +90,8 @@ class _LiquidGlassSegmentedControlState
     super.didUpdateWidget(oldWidget);
     if (oldWidget.segments != widget.segments ||
         oldWidget.selectedIndex != widget.selectedIndex ||
-        oldWidget.tint != widget.tint) {
+        oldWidget.tint != widget.tint ||
+        oldWidget.brightness != widget.brightness) {
       _applySize(_channel?.invokeMapMethod<String, dynamic>(
               'updateConfig', _params()) ??
           Future<Map<String, dynamic>?>.value());
@@ -94,7 +101,7 @@ class _LiquidGlassSegmentedControlState
   @override
   Widget build(BuildContext context) {
     if (defaultTargetPlatform != TargetPlatform.iOS) {
-      return SegmentedButton<String>(
+      final Widget control = SegmentedButton<String>(
         segments: widget.segments
             .map((String s) => ButtonSegment<String>(value: s, label: Text(s)))
             .toList(),
@@ -103,6 +110,11 @@ class _LiquidGlassSegmentedControlState
           final int idx = widget.segments.indexOf(sel.first);
           if (idx >= 0) widget.onChanged(idx);
         },
+      );
+      if (widget.brightness == null) return control;
+      return Theme(
+        data: ThemeData(brightness: widget.brightness!),
+        child: control,
       );
     }
 

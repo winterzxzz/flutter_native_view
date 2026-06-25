@@ -24,7 +24,10 @@ class WeatherStatusView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             switch (type) {
-              WeatherStatusType.loading => const LiquidGlassActivityIndicator(size: 36),
+              WeatherStatusType.loading => LiquidGlassActivityIndicator(
+                  size: 36,
+                  tint: Colors.white.withValues(alpha: 0.8),
+                ),
               WeatherStatusType.error => Icon(
                   Icons.cloud_off,
                   color: Colors.white.withValues(alpha: 0.6),

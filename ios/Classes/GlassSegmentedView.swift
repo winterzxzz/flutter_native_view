@@ -35,6 +35,7 @@ final class GlassSegmentedPlatformView: NSObject, FlutterPlatformView {
       name: "\(FlutterNativeViewPlugin.segmentedViewType)/\(viewId)", binaryMessenger: messenger)
     model = GlassSegmentedModel(args: args)
     container.backgroundColor = .clear
+    container.overrideUserInterfaceStyle = model.interfaceStyle
 
     super.init()
 
@@ -45,6 +46,7 @@ final class GlassSegmentedPlatformView: NSObject, FlutterPlatformView {
     if #available(iOS 16.0, *) {
       let hosting = UIHostingController(rootView: GlassSegmentedRoot(model: model))
       hosting.view.backgroundColor = .clear
+      hosting.overrideUserInterfaceStyle = model.interfaceStyle
       hosting.view.frame = container.bounds
       hosting.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
       container.addSubview(hosting.view)
@@ -58,6 +60,8 @@ final class GlassSegmentedPlatformView: NSObject, FlutterPlatformView {
         result(self.intrinsicSize())
       case "updateConfig":
         self.model.apply(args: call.arguments as? [String: Any] ?? [:])
+        self.container.overrideUserInterfaceStyle = self.model.interfaceStyle
+        self.host?.overrideUserInterfaceStyle = self.model.interfaceStyle
         DispatchQueue.main.async { result(self.intrinsicSize()) }
       default:
         result(FlutterMethodNotImplemented)
@@ -91,18 +95,30 @@ final class GlassSegmentedModel: ObservableObject {
   @Published var segments: [String]
   @Published var selectedIndex: Int
   @Published var tint: UIColor?
+  var brightness: String?
   var onIndexChanged: ((Int) -> Void)?
 
   init(args: [String: Any]) {
     segments = args["segments"] as? [String] ?? ["A", "B"]
     selectedIndex = args["selectedIndex"] as? Int ?? 0
     tint = GlassColor.fromARGB(args["tint"] as? Int)
+    brightness = args["brightness"] as? String
   }
 
   func apply(args: [String: Any]) {
     segments = args["segments"] as? [String] ?? segments
     selectedIndex = args["selectedIndex"] as? Int ?? selectedIndex
     tint = GlassColor.fromARGB(args["tint"] as? Int)
+    brightness = args["brightness"] as? String
+  }
+
+  /// Maps a Flutter `Brightness` name to a UIKit interface style.
+  var interfaceStyle: UIUserInterfaceStyle {
+    switch brightness {
+    case "light": return .light
+    case "dark": return .dark
+    default: return .unspecified
+    }
   }
 }
 
