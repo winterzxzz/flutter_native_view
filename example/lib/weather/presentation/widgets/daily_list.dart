@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:liquid_glass_native/liquid_glass_native.dart';
 
 import '../../shared/weather_codes.dart';
 import '../../shared/formatters.dart';
@@ -25,8 +24,16 @@ class DailyList extends StatelessWidget {
           for (final day in daily)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: LiquidGlassCard(
+              child: Container(
+                width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.15),
+                  ),
+                ),
                 child: Row(
                   children: [
                     SizedBox(
@@ -74,5 +81,3 @@ class DailyList extends StatelessWidget {
     );
   }
 }
-
-

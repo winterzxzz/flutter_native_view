@@ -34,34 +34,37 @@ class WeatherHome extends StatelessWidget {
 
           final tabIndex = context.watch<TabCubit>().state;
 
-          return Stack(
-            children: [
-              ConditionBackdrop(gradient: gradient),
-              SafeArea(
-                child: IndexedStack(
-                  index: tabIndex,
-                  children: const [
-                    WeatherTab(),
-                    SearchTab(),
-                    SettingsTab(),
-                  ],
+          return Material(
+            type: MaterialType.transparency,
+            child: Stack(
+              children: [
+                ConditionBackdrop(gradient: gradient),
+                SafeArea(
+                  child: IndexedStack(
+                    index: tabIndex,
+                    children: const [
+                      WeatherTab(),
+                      SearchTab(),
+                      SettingsTab(),
+                    ],
+                  ),
                 ),
-              ),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: LiquidGlassTabBar(
-                  currentIndex: tabIndex,
-                  onTap: (index) => context.read<TabCubit>().switchTo(index),
-                  items: const [
-                    TabItem(label: 'Weather', sfSymbol: 'cloud.sun'),
-                    TabItem(label: 'Search', sfSymbol: 'magnifyingglass'),
-                    TabItem(label: 'Settings', sfSymbol: 'gearshape'),
-                  ],
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: LiquidGlassTabBar(
+                    currentIndex: tabIndex,
+                    onTap: (index) => context.read<TabCubit>().switchTo(index),
+                    items: const [
+                      TabItem(label: 'Weather', sfSymbol: 'cloud.sun'),
+                      TabItem(label: 'Search', sfSymbol: 'magnifyingglass'),
+                      TabItem(label: 'Settings', sfSymbol: 'gearshape'),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),

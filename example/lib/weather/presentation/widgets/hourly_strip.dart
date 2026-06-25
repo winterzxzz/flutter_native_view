@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:liquid_glass_native/liquid_glass_native.dart';
 
 import '../../shared/weather_codes.dart';
 import '../../shared/formatters.dart';
@@ -28,38 +27,42 @@ class HourlyStrip extends StatelessWidget {
         itemBuilder: (context, index) {
           final h = hourly[index];
           final visual = weatherVisualFromCode(h.weatherCode, true);
-          return LiquidGlassContainer(
-            borderRadius: 14,
-            child: SizedBox(
-              width: 64,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    formatHour(h.time),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Icon(
-                    iconForSfSymbol(visual.sfSymbol),
-                    color: Colors.white,
-                    size: 22,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    formatTemp(h.tempC, unit),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
+          return Container(
+            width: 64,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.15),
               ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  formatHour(h.time),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Icon(
+                  iconForSfSymbol(visual.sfSymbol),
+                  color: Colors.white,
+                  size: 22,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  formatTemp(h.tempC, unit),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           );
         },
