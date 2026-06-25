@@ -36,7 +36,14 @@ class DemoEntry {
   final bool fullScreen;
 }
 
-final List<DemoEntry> demos = <DemoEntry>[
+final List<DemoEntry> apps = <DemoEntry>[
+  DemoEntry('Weather App', () {
+    configureWeatherDependencies();
+    return const WeatherApp();
+  }, fullScreen: true),
+];
+
+final List<DemoEntry> components = <DemoEntry>[
   DemoEntry('ActivityIndicator', () => buildActivityIndicatorDemo()),
   DemoEntry('Buttons', () => const ButtonDemo()),
   DemoEntry('Card', () => buildCardDemo()),
@@ -55,11 +62,9 @@ final List<DemoEntry> demos = <DemoEntry>[
   DemoEntry('TextField', () => buildTextFieldDemo()),
   DemoEntry('Theme & A11y', () => buildThemeDemo()),
   DemoEntry('Toolbar', () => buildToolbarDemo()),
-  DemoEntry('Weather App', () {
-    configureWeatherDependencies();
-    return const WeatherApp();
-  }, fullScreen: true),
 ];
+
+final List<DemoEntry> demos = <DemoEntry>[...apps, ...components];
 
 class Gallery extends StatelessWidget {
   const Gallery({super.key});
@@ -67,45 +72,165 @@ class Gallery extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LiquidGlassTheme(
-      data: const LiquidGlassThemeData(tint: Color(0xFF6C63FF), borderRadius: 14),
+      data: const LiquidGlassThemeData(
+        tint: Color(0xFF6C63FF),
+        borderRadius: 14,
+      ),
       child: Scaffold(
         body: DecoratedBox(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF1B1530),
-                Color(0xFF0E1426),
-                Color(0xFF06121A),
-              ],
+              colors: [Color(0xFF1B1530), Color(0xFF0E1426), Color(0xFF06121A)],
             ),
           ),
           child: SafeArea(
-            child: ListView.separated(
+            child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              itemCount: demos.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 10),
-              itemBuilder: (BuildContext context, int i) {
-                final DemoEntry entry = demos[i];
-                return _DemoCard(
-                  title: entry.title,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute<void>(
-                      builder: (_) => entry.fullScreen
-                          ? entry.builder()
-                          : _DemoPage(
-                              title: entry.title,
-                              child: entry.builder(),
-                            ),
+              children: [
+                const _Header(),
+                const SizedBox(height: 24),
+                const _SectionHeader(title: 'Apps'),
+                const SizedBox(height: 12),
+                ...apps.map(
+                  (entry) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _DemoCard(
+                      title: entry.title,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute<void>(
+                          builder: (_) => entry.fullScreen
+                              ? entry.builder()
+                              : _DemoPage(
+                                  title: entry.title,
+                                  child: entry.builder(),
+                                ),
+                        ),
+                      ),
                     ),
                   ),
-                );
-              },
+                ),
+                const SizedBox(height: 14),
+                const _SectionHeader(title: 'Components'),
+                const SizedBox(height: 12),
+                ...components.map(
+                  (entry) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _DemoCard(
+                      title: entry.title,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute<void>(
+                          builder: (_) => entry.fullScreen
+                              ? entry.builder()
+                              : _DemoPage(
+                                  title: entry.title,
+                                  child: entry.builder(),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 24, left: 4, right: 4),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF6C63FF).withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF6C63FF).withValues(alpha: 0.4),
+                width: 1.5,
+              ),
+            ),
+            child: const Icon(
+              Icons.layers_outlined,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 14),
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Liquid Glass',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              Text(
+                'Native Apple UI for Flutter',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title.toUpperCase(),
+            style: const TextStyle(
+              color: Colors.white54,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Container(
+            height: 2,
+            width: 40,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF6C63FF), Colors.transparent],
+              ),
+              borderRadius: BorderRadius.circular(1),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -200,18 +325,17 @@ class _DemoPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LiquidGlassTheme(
-      data: const LiquidGlassThemeData(tint: Color(0xFF6C63FF), borderRadius: 14),
+      data: const LiquidGlassThemeData(
+        tint: Color(0xFF6C63FF),
+        borderRadius: 14,
+      ),
       child: Scaffold(
         body: DecoratedBox(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF1B1530),
-                Color(0xFF0E1426),
-                Color(0xFF06121A),
-              ],
+              colors: [Color(0xFF1B1530), Color(0xFF0E1426), Color(0xFF06121A)],
             ),
           ),
           child: Column(
@@ -227,10 +351,7 @@ class _DemoPage extends StatelessWidget {
                 ],
               ),
               Expanded(
-                child: SafeArea(
-                  top: false,
-                  child: Center(child: child),
-                ),
+                child: SafeArea(top: false, child: Center(child: child)),
               ),
             ],
           ),
