@@ -105,72 +105,61 @@ struct GlassNavigationBarRoot: View {
 
   var body: some View {
     if #available(iOS 26.0, *) {
-      GlassEffectContainer(spacing: 0) {
-        HStack(spacing: 0) {
-          ForEach(model.leading, id: \.id) { item in
-            Button(action: { model.onAction?(item.id) }) {
-              Image(systemName: item.sfSymbol)
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 12)
-            }
-            .buttonStyle(.plain)
-          }
-          Spacer()
-          if let title = model.title {
-            Text(title)
-              .font(.system(size: 17, weight: .semibold))
-              .foregroundStyle(.white)
-              .lineLimit(1)
-          }
-          Spacer()
-          ForEach(model.trailing, id: \.id) { item in
-            Button(action: { model.onAction?(item.id) }) {
-              Image(systemName: item.sfSymbol)
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 12)
-            }
-            .buttonStyle(.plain)
-          }
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 8)
+      // GlassEffectContainer + per-button .glassEffect gives each action its own
+      // circular Liquid Glass capsule; the spacing lets adjacent buttons merge.
+      GlassEffectContainer(spacing: 8) {
+        bar(spacing: 8) { glassButton($0) }
       }
       .padding(.top, model.topSafeArea)
     } else {
-      HStack(spacing: 0) {
-        ForEach(model.leading, id: \.id) { item in
-          Button(action: { model.onAction?(item.id) }) {
-            Image(systemName: item.sfSymbol)
-              .font(.system(size: 20, weight: .semibold))
-              .foregroundStyle(.white)
-              .padding(.horizontal, 12)
-          }
-          .buttonStyle(.plain)
-        }
-        Spacer()
-        if let title = model.title {
-          Text(title)
-            .font(.system(size: 17, weight: .semibold))
-            .foregroundStyle(.white)
-            .lineLimit(1)
-        }
-        Spacer()
-        ForEach(model.trailing, id: \.id) { item in
-          Button(action: { model.onAction?(item.id) }) {
-            Image(systemName: item.sfSymbol)
-              .font(.system(size: 20, weight: .semibold))
-              .foregroundStyle(.white)
-              .padding(.horizontal, 12)
-          }
-          .buttonStyle(.plain)
-        }
-      }
-      .padding(.top, model.topSafeArea)
-      .padding(.horizontal, 8)
-      .padding(.vertical, 8)
-      .background(.ultraThinMaterial)
+      bar(spacing: 8) { materialButton($0) }
+        .padding(.top, model.topSafeArea)
+        .background(.ultraThinMaterial)
     }
+  }
+
+  /// Shared layout: leading actions · title · trailing actions.
+  private func bar<B: View>(
+    spacing: CGFloat, @ViewBuilder button: @escaping (NavBarActionItem) -> B
+  ) -> some View {
+    HStack(spacing: spacing) {
+      ForEach(model.leading, id: \.id) { button($0) }
+      Spacer(minLength: 8)
+      if let title = model.title {
+        Text(title)
+          .font(.system(size: 17, weight: .semibold))
+          .foregroundStyle(.white)
+          .lineLimit(1)
+      }
+      Spacer(minLength: 8)
+      ForEach(model.trailing, id: \.id) { button($0) }
+    }
+    .padding(.horizontal, 12)
+    .padding(.vertical, 8)
+  }
+
+  /// iOS 26 action button: an SF Symbol on a circular Liquid Glass capsule.
+  @available(iOS 26.0, *)
+  private func glassButton(_ item: NavBarActionItem) -> some View {
+    Button(action: { model.onAction?(item.id) }) {
+      Image(systemName: item.sfSymbol)
+        .font(.system(size: 18, weight: .semibold))
+        .foregroundStyle(.white)
+        .frame(width: 40, height: 40)
+        .glassEffect(.regular.interactive(), in: Circle())
+    }
+    .buttonStyle(.plain)
+  }
+
+  /// Fallback for iOS 16–25: a circular material capsule instead of glass.
+  private func materialButton(_ item: NavBarActionItem) -> some View {
+    Button(action: { model.onAction?(item.id) }) {
+      Image(systemName: item.sfSymbol)
+        .font(.system(size: 18, weight: .semibold))
+        .foregroundStyle(.white)
+        .frame(width: 40, height: 40)
+        .background(.ultraThinMaterial, in: Circle())
+    }
+    .buttonStyle(.plain)
   }
 }
