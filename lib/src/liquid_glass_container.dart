@@ -76,6 +76,13 @@ class _LiquidGlassContainerState extends State<LiquidGlassContainer> {
   }
 
   @override
+  void dispose() {
+    _channel?.setMethodCallHandler(null);
+    _channel = null;
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
     final Color? tint = widget.tint ?? t.tint;
