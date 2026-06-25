@@ -7,6 +7,8 @@ class BarAction {
     required this.id,
     required this.sfSymbol,
     this.onPressed,
+    this.tint,
+    this.iconColor,
   });
 
   /// Stable identifier for this action, used to route taps back from native.
@@ -17,4 +19,11 @@ class BarAction {
 
   /// Called when the action is tapped. When `null`, the action is disabled.
   final VoidCallback? onPressed;
+
+  /// Optional per-action glass tint color. Overrides any bar-level tint.
+  final Color? tint;
+
+  /// Optional per-action icon foreground color. Overrides any bar-level icon
+  /// color.
+  final Color? iconColor;
 }

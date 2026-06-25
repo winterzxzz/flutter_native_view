@@ -70,6 +70,8 @@ final class GlassToolbarPlatformView: NSObject, FlutterPlatformView {
 struct ToolbarActionItem {
   let id: String
   let sfSymbol: String
+  let tint: UIColor?
+  let iconColor: UIColor?
 }
 
 final class GlassToolbarModel: ObservableObject {
@@ -82,7 +84,14 @@ final class GlassToolbarModel: ObservableObject {
 
   func apply(args: [String: Any]) {
     if let items = args["actions"] as? [[String: Any]] {
-      actions = items.map { ToolbarActionItem(id: $0["id"] as? String ?? "", sfSymbol: $0["sfSymbol"] as? String ?? "") }
+      actions = items.map {
+        ToolbarActionItem(
+          id: $0["id"] as? String ?? "",
+          sfSymbol: $0["sfSymbol"] as? String ?? "",
+          tint: GlassColor.fromARGB($0["tint"] as? Int),
+          iconColor: GlassColor.fromARGB($0["iconColor"] as? Int)
+        )
+      }
     }
   }
 }
@@ -93,6 +102,27 @@ final class GlassToolbarModel: ObservableObject {
 struct GlassToolbarRoot: View {
   @ObservedObject var model: GlassToolbarModel
 
+  @available(iOS 26.0, *)
+  private func resolvedGlass(for item: ToolbarActionItem) -> Glass {
+    var glass = Glass.regular
+    if let tint = item.tint {
+      glass = glass.tint(Color(uiColor: tint))
+    }
+    return glass
+  }
+
+  private func iconView(for item: ToolbarActionItem) -> some View {
+    Image(systemName: item.sfSymbol)
+      .font(.system(size: 20, weight: .semibold))
+      .foregroundStyle(
+        item.iconColor.map { Color(uiColor: $0) }
+        ?? item.tint.map { Color(uiColor: $0) }
+        ?? .primary
+      )
+      .padding(.horizontal, 16)
+      .padding(.vertical, 8)
+  }
+
   var body: some View {
     if #available(iOS 26.0, *) {
       GlassEffectContainer(spacing: 0) {
@@ -100,10 +130,9 @@ struct GlassToolbarRoot: View {
           Spacer()
           ForEach(model.actions, id: \.id) { item in
             Button(action: { model.onAction?(item.id) }) {
-              Image(systemName: item.sfSymbol)
-                .font(.system(size: 20, weight: .semibold))
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+              iconView(for: item)
+                .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .glassEffect(resolvedGlass(for: item), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
             .buttonStyle(.plain)
           }
@@ -115,10 +144,7 @@ struct GlassToolbarRoot: View {
         Spacer()
         ForEach(model.actions, id: \.id) { item in
           Button(action: { model.onAction?(item.id) }) {
-            Image(systemName: item.sfSymbol)
-              .font(.system(size: 20, weight: .semibold))
-              .padding(.horizontal, 16)
-              .padding(.vertical, 8)
+            iconView(for: item)
           }
           .buttonStyle(.plain)
         }

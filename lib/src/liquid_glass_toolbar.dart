@@ -30,7 +30,12 @@ class _LiquidGlassToolbarState extends State<LiquidGlassToolbar> {
 
   Map<String, dynamic> _params() => <String, dynamic>{
         'actions': widget.actions
-            .map((a) => <String, dynamic>{'id': a.id, 'sfSymbol': a.sfSymbol})
+            .map((a) => <String, dynamic>{
+                  'id': a.id,
+                  'sfSymbol': a.sfSymbol,
+                  'tint': a.tint?.toARGB32(),
+                  'iconColor': a.iconColor?.toARGB32(),
+                })
             .toList(growable: false),
       };
 

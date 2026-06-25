@@ -71,35 +71,27 @@ class Gallery extends StatelessWidget {
               ],
             ),
           ),
-          child: Column(
-            children: [
-              LiquidGlassNavigationBar(title: 'Liquid Glass Gallery'),
-              Expanded(
-                child: SafeArea(
-                  top: false,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    itemCount: demos.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 10),
-                    itemBuilder: (BuildContext context, int i) {
-                      final DemoEntry entry = demos[i];
-                      return _DemoCard(
+          child: SafeArea(
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              itemCount: demos.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
+              itemBuilder: (BuildContext context, int i) {
+                final DemoEntry entry = demos[i];
+                return _DemoCard(
+                  title: entry.title,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => _DemoPage(
                         title: entry.title,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute<void>(
-                            builder: (_) => _DemoPage(
-                              title: entry.title,
-                              child: entry.builder(),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
+                        child: entry.builder(),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ],
+                );
+              },
+            ),
           ),
         ),
       ),
