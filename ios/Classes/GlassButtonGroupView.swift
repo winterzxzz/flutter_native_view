@@ -85,6 +85,7 @@ struct GroupButtonItem {
 
 final class GlassButtonGroupModel: ObservableObject {
   @Published var buttons: [GroupButtonItem] = []
+  @Published var spacing: CGFloat = 8
   var onPressed: ((String) -> Void)?
 
   init(args: [String: Any]) {
@@ -101,6 +102,9 @@ final class GlassButtonGroupModel: ObservableObject {
         )
       }
     }
+    if let s = args["spacing"] as? Double {
+      spacing = CGFloat(s)
+    }
   }
 }
 
@@ -113,7 +117,7 @@ struct GlassButtonGroupRoot: View {
   var body: some View {
     if #available(iOS 26.0, *) {
       GlassEffectContainer(spacing: 8) {
-        HStack(spacing: 0) {
+        HStack(spacing: model.spacing) {
           ForEach(model.buttons, id: \.id) { item in
             Button(action: { model.onPressed?(item.id) }) {
               buttonLabel(for: item)
@@ -127,7 +131,7 @@ struct GlassButtonGroupRoot: View {
         }
       }
     } else {
-      HStack(spacing: 0) {
+      HStack(spacing: model.spacing) {
         ForEach(model.buttons, id: \.id) { item in
           Button(action: { model.onPressed?(item.id) }) {
             buttonLabel(for: item)

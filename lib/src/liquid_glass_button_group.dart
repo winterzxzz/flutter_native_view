@@ -14,9 +14,13 @@ class LiquidGlassButtonGroup extends StatefulWidget {
   const LiquidGlassButtonGroup({
     super.key,
     required this.buttons,
+    this.spacing = 8,
   });
 
   final List<GroupButton> buttons;
+
+  /// Spacing between buttons inside the group. Defaults to 8.
+  final double spacing;
 
   @override
   State<LiquidGlassButtonGroup> createState() => _LiquidGlassButtonGroupState();
@@ -56,6 +60,7 @@ class _LiquidGlassButtonGroupState extends State<LiquidGlassButtonGroup> {
 
   Map<String, dynamic> _params() => <String, dynamic>{
         'buttons': _buttonsJson(),
+        'spacing': widget.spacing,
       };
 
   Future<void> _onCreated(int id) async {

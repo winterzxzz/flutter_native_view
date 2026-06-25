@@ -151,18 +151,21 @@ class _ButtonDemoState extends State<ButtonDemo> {
                 LiquidGlassIconButton(
                   sfSymbol: 'heart',
                   onPressed: () => setState(() => _likes++),
+                  iconColor: Colors.white,
                 ),
                 const SizedBox(width: 16),
                 LiquidGlassIconButton(
                   sfSymbol: 'star.fill',
                   onPressed: () {},
                   tint: Colors.amber,
+                  iconColor: Colors.white,
                 ),
                 const SizedBox(width: 16),
                 LiquidGlassIconButton(
                   sfSymbol: 'trash',
                   onPressed: () {},
                   tint: Colors.red,
+                  iconColor: Colors.white,
                   size: 52,
                   iconSize: 24,
                 ),
@@ -177,6 +180,7 @@ class _ButtonDemoState extends State<ButtonDemo> {
                 ? 'Tap a group button'
                 : 'Selected: $_group',
             child: LiquidGlassButtonGroup(
+              spacing: 12,
               buttons: [
                 GroupButton(
                     id: 'heart',

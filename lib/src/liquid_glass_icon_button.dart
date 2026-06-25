@@ -22,6 +22,7 @@ class LiquidGlassIconButton extends StatefulWidget {
     this.size = 44,
     this.iconSize = 20,
     this.tint,
+    this.iconColor,
     this.borderRadius,
     this.interactive,
   });
@@ -40,6 +41,10 @@ class LiquidGlassIconButton extends StatefulWidget {
 
   /// Optional glass tint color. Falls back to the [LiquidGlassTheme] tint.
   final Color? tint;
+
+  /// Optional icon foreground color. When set, overrides the tint color used
+  /// for the symbol itself while the glass tint still controls the background.
+  final Color? iconColor;
 
   /// Corner radius. When `null`, falls back to the [LiquidGlassTheme] value,
   /// otherwise a circle (Capsule).
@@ -64,6 +69,7 @@ class _LiquidGlassIconButtonState extends State<LiquidGlassIconButton> {
       'size': widget.size,
       'iconSize': widget.iconSize,
       'tint': (widget.tint ?? t.tint)?.toARGB32(),
+      'iconColor': widget.iconColor?.toARGB32(),
       'cornerRadius': widget.borderRadius ?? t.borderRadius,
       'interactive': widget.interactive ?? t.interactive ?? true,
       'respectAccessibility': t.respectAccessibility,
@@ -96,6 +102,7 @@ class _LiquidGlassIconButtonState extends State<LiquidGlassIconButton> {
         oldWidget.size != widget.size ||
         oldWidget.iconSize != widget.iconSize ||
         oldWidget.tint != widget.tint ||
+        oldWidget.iconColor != widget.iconColor ||
         oldWidget.borderRadius != widget.borderRadius ||
         oldWidget.interactive != widget.interactive) {
       _applySize(_channel?.invokeMapMethod<String, dynamic>('updateConfig', _params()) ??
