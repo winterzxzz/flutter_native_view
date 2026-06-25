@@ -1,8 +1,7 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'glass_platform_view.dart';
 import 'liquid_glass_theme.dart';
 
 const String _kSegmentedViewType = 'flutter_native_view/glass_segmented';
@@ -32,11 +31,13 @@ class LiquidGlassSegmentedControl extends StatefulWidget {
   /// Called with the index of the newly selected segment.
   final ValueChanged<int> onChanged;
 
-  /// Optional tint color for the selected segment.
+  /// Optional tint color for the selected segment. Falls back to the
+  /// [LiquidGlassTheme] tint.
   final Color? tint;
 
   /// Forces the control's light/dark appearance instead of following the
-  /// device system trait. When `null`, the system trait is used.
+  /// device system trait. When `null`, falls back to the [LiquidGlassTheme]
+  /// brightness, otherwise the system trait is used.
   final Brightness? brightness;
 
   @override
@@ -45,62 +46,46 @@ class LiquidGlassSegmentedControl extends StatefulWidget {
 }
 
 class _LiquidGlassSegmentedControlState
-    extends State<LiquidGlassSegmentedControl> {
-  MethodChannel? _channel;
-  Size? _size;
+    extends State<LiquidGlassSegmentedControl>
+    with GlassPlatformViewMixin<LiquidGlassSegmentedControl> {
+  @override
+  String get glassViewType => _kSegmentedViewType;
 
-  Map<String, dynamic> _params() {
+  @override
+  bool get measuresSize => true;
+
+  Brightness? get _brightness =>
+      widget.brightness ?? LiquidGlassTheme.of(context).brightness;
+
+  @override
+  Map<String, dynamic> buildParams() {
     final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
     return <String, dynamic>{
       'segments': widget.segments,
       'selectedIndex': widget.selectedIndex,
       'tint': (widget.tint ?? t.tint)?.toARGB32(),
-      'brightness': widget.brightness?.name,
+      'brightness': _brightness?.name,
       'respectAccessibility': t.respectAccessibility,
     };
   }
 
-  Future<void> _onCreated(int id) async {
-    final MethodChannel channel = MethodChannel('$_kSegmentedViewType/$id');
-    channel.setMethodCallHandler((MethodCall call) async {
-      if (call.method == 'onIndexChanged') {
-        widget.onChanged((call.arguments as num).toInt());
-      }
-      return null;
-    });
-    _channel = channel;
-    await _applySize(
-        channel.invokeMapMethod<String, dynamic>('getIntrinsicSize'));
-  }
-
-  Future<void> _applySize(Future<Map<String, dynamic>?> call) async {
-    final Map<String, dynamic>? res = await call;
-    if (res != null && mounted) {
-      setState(() {
-        _size = Size(
-          (res['width'] as num).toDouble(),
-          (res['height'] as num).toDouble(),
-        );
-      });
+  @override
+  Future<dynamic> handleCall(MethodCall call) async {
+    if (call.method == 'onIndexChanged') {
+      widget.onChanged((call.arguments as num).toInt());
     }
+    return null;
   }
 
   @override
   void didUpdateWidget(LiquidGlassSegmentedControl oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.segments != widget.segments ||
-        oldWidget.selectedIndex != widget.selectedIndex ||
-        oldWidget.tint != widget.tint ||
-        oldWidget.brightness != widget.brightness) {
-      _applySize(_channel?.invokeMapMethod<String, dynamic>(
-              'updateConfig', _params()) ??
-          Future<Map<String, dynamic>?>.value());
-    }
+    syncConfig();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
+    if (!isGlassPlatform) {
       final Widget control = SegmentedButton<String>(
         segments: widget.segments
             .map((String s) => ButtonSegment<String>(value: s, label: Text(s)))
@@ -111,26 +96,13 @@ class _LiquidGlassSegmentedControlState
           if (idx >= 0) widget.onChanged(idx);
         },
       );
-      if (widget.brightness == null) return control;
-      return Theme(
-        data: ThemeData(brightness: widget.brightness!),
-        child: control,
-      );
+      final Brightness? b = _brightness;
+      if (b == null) return control;
+      return Theme(data: ThemeData(brightness: b), child: control);
     }
-
-    final Size size = _size ?? const Size(200, 32);
-    return SizedBox(
-      width: size.width,
-      height: size.height,
-      child: UiKitView(
-        viewType: _kSegmentedViewType,
-        creationParams: _params(),
-        creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: _onCreated,
-        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-          Factory<EagerGestureRecognizer>(EagerGestureRecognizer.new),
-        },
-      ),
+    return glassView(
+      estimatedSize: const Size(200, 32),
+      gesture: GlassGesture.eager,
     );
   }
 }

@@ -1,8 +1,6 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
+import 'glass_platform_view.dart';
 import 'liquid_glass_theme.dart';
 
 const String _kProgressViewType = 'flutter_native_view/glass_progress';
@@ -15,59 +13,56 @@ class LiquidGlassProgressView extends StatefulWidget {
     super.key,
     this.value = 0.0,
     this.tint,
+    this.height = 8,
   });
 
   /// The current progress, from 0.0 to 1.0. Defaults to 0.0 (indeterminate).
   final double value;
 
-  /// Optional tint color.
+  /// Optional tint color. Falls back to the [LiquidGlassTheme] tint.
   final Color? tint;
+
+  /// Bar height. Defaults to 8. Width always fills the parent.
+  final double height;
 
   @override
   State<LiquidGlassProgressView> createState() =>
       _LiquidGlassProgressViewState();
 }
 
-class _LiquidGlassProgressViewState extends State<LiquidGlassProgressView> {
-  MethodChannel? _channel;
+class _LiquidGlassProgressViewState extends State<LiquidGlassProgressView>
+    with GlassPlatformViewMixin<LiquidGlassProgressView> {
+  @override
+  String get glassViewType => _kProgressViewType;
 
-  Map<String, dynamic> _params() => <String, dynamic>{
-        'value': widget.value,
-        'tint': (widget.tint ?? LiquidGlassTheme.of(context).tint)?.toARGB32(),
-        'respectAccessibility': LiquidGlassTheme.of(context).respectAccessibility,
-      };
-
-  void _onCreated(int id) {
-    _channel = MethodChannel('$_kProgressViewType/$id');
+  @override
+  Map<String, dynamic> buildParams() {
+    final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
+    return <String, dynamic>{
+      'value': widget.value,
+      'tint': (widget.tint ?? t.tint)?.toARGB32(),
+      'respectAccessibility': t.respectAccessibility,
+    };
   }
 
   @override
   void didUpdateWidget(LiquidGlassProgressView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.value != widget.value) {
-      _channel?.invokeMethod<void>('setValue', widget.value);
-    }
+    syncConfig();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
+    if (!isGlassPlatform) {
       return LinearProgressIndicator(
         value: widget.value > 0 ? widget.value : null,
         color: widget.tint,
       );
     }
-
-    return SizedBox(
+    return glassView(
       width: double.infinity,
-      height: 8,
-      child: UiKitView(
-        viewType: _kProgressViewType,
-        creationParams: _params(),
-        creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: _onCreated,
-        gestureRecognizers: const <Factory<OneSequenceGestureRecognizer>>{},
-      ),
+      height: widget.height,
+      gesture: GlassGesture.none,
     );
   }
 }

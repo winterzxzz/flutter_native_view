@@ -1,7 +1,7 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import 'glass_platform_view.dart';
 
 const String _kDatePickerViewType = 'flutter_native_view/glass_date_picker';
 
@@ -32,57 +32,41 @@ class LiquidGlassDatePicker extends StatefulWidget {
   State<LiquidGlassDatePicker> createState() => _LiquidGlassDatePickerState();
 }
 
-class _LiquidGlassDatePickerState extends State<LiquidGlassDatePicker> {
-  MethodChannel? _channel;
-  Size? _size;
+class _LiquidGlassDatePickerState extends State<LiquidGlassDatePicker>
+    with GlassPlatformViewMixin<LiquidGlassDatePicker> {
+  @override
+  String get glassViewType => _kDatePickerViewType;
 
-  int _millis(DateTime d) => d.millisecondsSinceEpoch;
+  @override
+  bool get measuresSize => true;
 
-  Map<String, dynamic> _params() => <String, dynamic>{
-        'value': _millis(widget.value),
+  @override
+  Map<String, dynamic> buildParams() => <String, dynamic>{
+        'value': widget.value.millisecondsSinceEpoch,
         'min': widget.min?.millisecondsSinceEpoch,
         'max': widget.max?.millisecondsSinceEpoch,
         'mode': widget.mode,
       };
 
-  Future<void> _onCreated(int id) async {
-    final MethodChannel channel = MethodChannel('$_kDatePickerViewType/$id');
-    channel.setMethodCallHandler((MethodCall call) async {
-      if (call.method == 'onChanged') {
-        final int millis = call.arguments as int;
-        widget.onChanged(
-            DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true).toLocal());
-      }
-      return null;
-    });
-    _channel = channel;
-    await _applySize(
-        channel.invokeMapMethod<String, dynamic>('getIntrinsicSize'));
-  }
-
-  Future<void> _applySize(Future<Map<String, dynamic>?> call) async {
-    final Map<String, dynamic>? res = await call;
-    if (res != null && mounted) {
-      setState(() {
-        _size = Size(
-          (res['width'] as num).toDouble(),
-          (res['height'] as num).toDouble(),
-        );
-      });
+  @override
+  Future<dynamic> handleCall(MethodCall call) async {
+    if (call.method == 'onChanged') {
+      final int millis = call.arguments as int;
+      widget.onChanged(
+          DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true).toLocal());
     }
+    return null;
   }
 
   @override
   void didUpdateWidget(LiquidGlassDatePicker oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.value != widget.value) {
-      _channel?.invokeMethod<void>('setValue', _millis(widget.value));
-    }
+    syncConfig();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
+    if (!isGlassPlatform) {
       return FilledButton.icon(
         icon: const Icon(Icons.calendar_month),
         label: Text(
@@ -101,20 +85,9 @@ class _LiquidGlassDatePickerState extends State<LiquidGlassDatePicker> {
         },
       );
     }
-
-    final Size size = _size ?? const Size(200, 44);
-    return SizedBox(
-      width: size.width,
-      height: size.height,
-      child: UiKitView(
-        viewType: _kDatePickerViewType,
-        creationParams: _params(),
-        creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: _onCreated,
-        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-          Factory<EagerGestureRecognizer>(EagerGestureRecognizer.new),
-        },
-      ),
+    return glassView(
+      estimatedSize: const Size(200, 44),
+      gesture: GlassGesture.eager,
     );
   }
 }

@@ -1,7 +1,7 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import 'glass_platform_view.dart';
 
 const String _kSearchBarViewType = 'flutter_native_view/glass_search_bar';
 
@@ -20,6 +20,7 @@ class LiquidGlassSearchBar extends StatefulWidget {
     this.textColor,
     this.iconColor,
     this.cursorColor,
+    this.height = 44,
   });
 
   /// Current query text shown in the field (controlled value).
@@ -44,54 +45,54 @@ class LiquidGlassSearchBar extends StatefulWidget {
   /// Color of the text cursor / selection tint. Defaults to [textColor].
   final Color? cursorColor;
 
+  /// Field height. Defaults to 44. Width always fills the parent.
+  final double height;
+
   @override
   State<LiquidGlassSearchBar> createState() => _LiquidGlassSearchBarState();
 }
 
-class _LiquidGlassSearchBarState extends State<LiquidGlassSearchBar> {
-  MethodChannel? _channel;
+class _LiquidGlassSearchBarState extends State<LiquidGlassSearchBar>
+    with GlassPlatformViewMixin<LiquidGlassSearchBar> {
+  @override
+  String get glassViewType => _kSearchBarViewType;
 
-  Map<String, dynamic> _params() {
-    final Color text = widget.textColor ?? Colors.white;
-    final Color icon = widget.iconColor ?? text.withValues(alpha: 0.7);
-    final Color cursor = widget.cursorColor ?? text;
-    return <String, dynamic>{
-      'text': widget.text,
-      'placeholder': widget.placeholder ?? '',
-      'textColor': text.toARGB32(),
-      'iconColor': icon.toARGB32(),
-      'cursorColor': cursor.toARGB32(),
-    };
-  }
+  Color get _textColor => widget.textColor ?? Colors.white;
+  Color get _iconColor => widget.iconColor ?? _textColor.withValues(alpha: 0.7);
+  Color get _cursorColor => widget.cursorColor ?? _textColor;
 
-  void _onCreated(int id) {
-    final MethodChannel channel = MethodChannel('$_kSearchBarViewType/$id');
-    channel.setMethodCallHandler((MethodCall call) async {
-      switch (call.method) {
-        case 'onChanged':
-          widget.onChanged(call.arguments as String);
-        case 'onSubmitted':
-          widget.onSubmitted?.call(call.arguments as String);
-      }
-      return null;
-    });
-    _channel = channel;
+  @override
+  Map<String, dynamic> buildParams() => <String, dynamic>{
+        'text': widget.text,
+        'placeholder': widget.placeholder ?? '',
+        'textColor': _textColor.toARGB32(),
+        'iconColor': _iconColor.toARGB32(),
+        'cursorColor': _cursorColor.toARGB32(),
+      };
+
+  @override
+  Future<dynamic> handleCall(MethodCall call) async {
+    switch (call.method) {
+      case 'onChanged':
+        widget.onChanged(call.arguments as String);
+      case 'onSubmitted':
+        widget.onSubmitted?.call(call.arguments as String);
+    }
+    return null;
   }
 
   @override
   void didUpdateWidget(LiquidGlassSearchBar oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // Lightweight text-only sync; see LiquidGlassTextField for the rationale.
     if (oldWidget.text != widget.text) {
-      _channel?.invokeMethod<void>('setText', widget.text);
+      channel?.invokeMethod<void>('setText', widget.text);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
-      final Color text = widget.textColor ?? Colors.white;
-      final Color icon = widget.iconColor ?? text.withValues(alpha: 0.7);
-      final Color cursor = widget.cursorColor ?? text;
+    if (!isGlassPlatform) {
       return TextField(
         controller: TextEditingController.fromValue(
           TextEditingValue(
@@ -101,31 +102,22 @@ class _LiquidGlassSearchBarState extends State<LiquidGlassSearchBar> {
         ),
         onChanged: widget.onChanged,
         onSubmitted: widget.onSubmitted,
-        style: TextStyle(color: text),
-        cursorColor: cursor,
+        style: TextStyle(color: _textColor),
+        cursorColor: _cursorColor,
         decoration: InputDecoration(
           hintText: widget.placeholder,
-          hintStyle: TextStyle(color: icon),
-          prefixIcon: Icon(Icons.search, color: icon),
+          hintStyle: TextStyle(color: _iconColor),
+          prefixIcon: Icon(Icons.search, color: _iconColor),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(24),
           ),
         ),
       );
     }
-
-    return SizedBox(
+    return glassView(
       width: double.infinity,
-      height: 44,
-      child: UiKitView(
-        viewType: _kSearchBarViewType,
-        creationParams: _params(),
-        creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: _onCreated,
-        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-          Factory<EagerGestureRecognizer>(EagerGestureRecognizer.new),
-        },
-      ),
+      height: widget.height,
+      gesture: GlassGesture.eager,
     );
   }
 }

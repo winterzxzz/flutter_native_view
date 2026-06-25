@@ -60,6 +60,9 @@ final class GlassDatePickerPlatformView: NSObject, FlutterPlatformView {
           self.model.date = Date(timeIntervalSince1970: millis / 1000)
         }
         result(nil)
+      case "updateConfig":
+        self.model.apply(args: call.arguments as? [String: Any] ?? [:])
+        DispatchQueue.main.async { result(self.intrinsicSize()) }
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -96,6 +99,15 @@ final class GlassDatePickerModel: ObservableObject {
       maxDate = Date(timeIntervalSince1970: maxMillis / 1000)
     }
     mode = args["mode"] as? String ?? "date"
+  }
+
+  func apply(args: [String: Any]) {
+    if let millis = args["value"] as? Double {
+      date = Date(timeIntervalSince1970: millis / 1000)
+    }
+    minDate = (args["min"] as? Double).map { Date(timeIntervalSince1970: $0 / 1000) }
+    maxDate = (args["max"] as? Double).map { Date(timeIntervalSince1970: $0 / 1000) }
+    mode = args["mode"] as? String ?? mode
   }
 }
 

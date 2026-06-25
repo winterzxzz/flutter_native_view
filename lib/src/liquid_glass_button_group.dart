@@ -1,8 +1,7 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'glass_platform_view.dart';
 import 'liquid_glass_button.dart';
 
 const String _kButtonGroupViewType = 'flutter_native_view/glass_button_group';
@@ -41,90 +40,58 @@ class GroupButton {
   final VoidCallback? onPressed;
 }
 
-class _LiquidGlassButtonGroupState extends State<LiquidGlassButtonGroup> {
-  MethodChannel? _channel;
-  Size? _size;
+class _LiquidGlassButtonGroupState extends State<LiquidGlassButtonGroup>
+    with GlassPlatformViewMixin<LiquidGlassButtonGroup> {
+  @override
+  String get glassViewType => _kButtonGroupViewType;
 
-  Map<String, VoidCallback> get _callbacks => {
-        for (final b in widget.buttons)
-          b.id: b.onPressed ?? () {},
+  @override
+  bool get measuresSize => true;
+
+  Map<String, VoidCallback> get _callbacks => <String, VoidCallback>{
+        for (final GroupButton b in widget.buttons) b.id: b.onPressed ?? () {},
       };
 
-  List<Map<String, dynamic>> _buttonsJson() => widget.buttons
-      .map((b) => <String, dynamic>{
-            'id': b.id,
-            'label': b.label,
-            'sfSymbol': b.sfSymbol,
-          })
-      .toList(growable: false);
-
-  Map<String, dynamic> _params() => <String, dynamic>{
-        'buttons': _buttonsJson(),
+  @override
+  Map<String, dynamic> buildParams() => <String, dynamic>{
+        'buttons': widget.buttons
+            .map((GroupButton b) => <String, dynamic>{
+                  'id': b.id,
+                  'label': b.label,
+                  'sfSymbol': b.sfSymbol,
+                })
+            .toList(growable: false),
         'spacing': widget.spacing,
       };
 
-  Future<void> _onCreated(int id) async {
-    final MethodChannel channel = MethodChannel('$_kButtonGroupViewType/$id');
-    channel.setMethodCallHandler((MethodCall call) async {
-      if (call.method == 'onPressed') {
-        final String? buttonId = call.arguments as String?;
-        if (buttonId != null) {
-          _callbacks[buttonId]?.call();
-        }
-      }
-      return null;
-    });
-    _channel = channel;
-    await _applySize(
-        channel.invokeMapMethod<String, dynamic>('getIntrinsicSize'));
-  }
-
-  Future<void> _applySize(Future<Map<String, dynamic>?> call) async {
-    final Map<String, dynamic>? res = await call;
-    if (res != null && mounted) {
-      setState(() {
-        _size = Size(
-          (res['width'] as num).toDouble(),
-          (res['height'] as num).toDouble(),
-        );
-      });
+  @override
+  Future<dynamic> handleCall(MethodCall call) async {
+    if (call.method == 'onPressed') {
+      final String? buttonId = call.arguments as String?;
+      if (buttonId != null) _callbacks[buttonId]?.call();
     }
+    return null;
   }
 
   @override
   void didUpdateWidget(LiquidGlassButtonGroup oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _channel
-        ?.invokeMapMethod<String, dynamic>('updateConfig', _params());
+    syncConfig();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
+    if (!isGlassPlatform) {
       return Row(
         mainAxisSize: MainAxisSize.min,
-        children: widget.buttons.map((b) {
-          return LiquidGlassButton(
-            label: b.label ?? '',
-            onPressed: b.onPressed,
-          );
-        }).toList(growable: false),
+        children: widget.buttons
+            .map((GroupButton b) => LiquidGlassButton(
+                  label: b.label ?? '',
+                  onPressed: b.onPressed,
+                ))
+            .toList(growable: false),
       );
     }
-
-    final Size size = _size ?? const Size(200, 44);
-    return SizedBox(
-      width: size.width,
-      height: size.height,
-      child: UiKitView(
-        viewType: _kButtonGroupViewType,
-        creationParams: _params(),
-        creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: _onCreated,
-        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-          Factory<TapGestureRecognizer>(TapGestureRecognizer.new),
-        },
-      ),
-    );
+    return glassView(estimatedSize: const Size(200, 44));
   }
 }

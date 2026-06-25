@@ -13,6 +13,8 @@ class LiquidGlassThemeData {
     this.borderRadius,
     this.interactive,
     this.labelColor,
+    this.iconColor,
+    this.brightness,
     this.respectAccessibility = true,
   });
 
@@ -28,6 +30,13 @@ class LiquidGlassThemeData {
   /// Default label/foreground color for native text.
   final Color? labelColor;
 
+  /// Default foreground color for native icons (SF Symbols).
+  final Color? iconColor;
+
+  /// Default light/dark appearance for widgets that support forcing it
+  /// (segmented control, tab bar). When `null`, the system trait is followed.
+  final Brightness? brightness;
+
   /// When `true` (default), native glass honors the system accessibility
   /// settings *Reduce Transparency* (renders a solid fill) and *Reduce Motion*
   /// (drops the interactive touch response).
@@ -39,6 +48,8 @@ class LiquidGlassThemeData {
     double? borderRadius,
     bool? interactive,
     Color? labelColor,
+    Color? iconColor,
+    Brightness? brightness,
     bool? respectAccessibility,
   }) {
     return LiquidGlassThemeData(
@@ -46,6 +57,8 @@ class LiquidGlassThemeData {
       borderRadius: borderRadius ?? this.borderRadius,
       interactive: interactive ?? this.interactive,
       labelColor: labelColor ?? this.labelColor,
+      iconColor: iconColor ?? this.iconColor,
+      brightness: brightness ?? this.brightness,
       respectAccessibility: respectAccessibility ?? this.respectAccessibility,
     );
   }
@@ -57,11 +70,13 @@ class LiquidGlassThemeData {
       other.borderRadius == borderRadius &&
       other.interactive == interactive &&
       other.labelColor == labelColor &&
+      other.iconColor == iconColor &&
+      other.brightness == brightness &&
       other.respectAccessibility == respectAccessibility;
 
   @override
-  int get hashCode =>
-      Object.hash(tint, borderRadius, interactive, labelColor, respectAccessibility);
+  int get hashCode => Object.hash(tint, borderRadius, interactive, labelColor,
+      iconColor, brightness, respectAccessibility);
 }
 
 /// Supplies default [LiquidGlassThemeData] to descendant glass widgets.

@@ -1,8 +1,7 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'glass_platform_view.dart';
 import 'liquid_glass_theme.dart';
 
 const String _kIconButtonViewType = 'flutter_native_view/glass_icon_button';
@@ -25,6 +24,7 @@ class LiquidGlassIconButton extends StatefulWidget {
     this.iconColor,
     this.borderRadius,
     this.interactive,
+    this.fallbackIcon = Icons.star,
   });
 
   /// SF Symbol name for the icon (e.g. "heart", "star.fill").
@@ -44,6 +44,7 @@ class LiquidGlassIconButton extends StatefulWidget {
 
   /// Optional icon foreground color. When set, overrides the tint color used
   /// for the symbol itself while the glass tint still controls the background.
+  /// Falls back to the [LiquidGlassTheme] icon color.
   final Color? iconColor;
 
   /// Corner radius. When `null`, falls back to the [LiquidGlassTheme] value,
@@ -54,85 +55,59 @@ class LiquidGlassIconButton extends StatefulWidget {
   /// [LiquidGlassTheme] value, otherwise `true`.
   final bool? interactive;
 
+  /// Material icon used on non-iOS platforms, where [sfSymbol] cannot render.
+  /// Defaults to [Icons.star] — set it so the fallback matches your action.
+  final IconData fallbackIcon;
+
   @override
   State<LiquidGlassIconButton> createState() => _LiquidGlassIconButtonState();
 }
 
-class _LiquidGlassIconButtonState extends State<LiquidGlassIconButton> {
-  MethodChannel? _channel;
-  Size? _size;
+class _LiquidGlassIconButtonState extends State<LiquidGlassIconButton>
+    with GlassPlatformViewMixin<LiquidGlassIconButton> {
+  @override
+  String get glassViewType => _kIconButtonViewType;
 
-  Map<String, dynamic> _params() {
+  @override
+  bool get measuresSize => true;
+
+  @override
+  Map<String, dynamic> buildParams() {
     final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
     return <String, dynamic>{
       'sfSymbol': widget.sfSymbol,
       'size': widget.size,
       'iconSize': widget.iconSize,
       'tint': (widget.tint ?? t.tint)?.toARGB32(),
-      'iconColor': widget.iconColor?.toARGB32(),
+      'iconColor': (widget.iconColor ?? t.iconColor)?.toARGB32(),
       'cornerRadius': widget.borderRadius ?? t.borderRadius,
       'interactive': widget.interactive ?? t.interactive ?? true,
       'respectAccessibility': t.respectAccessibility,
     };
   }
 
-  Future<void> _onCreated(int id) async {
-    final MethodChannel channel = MethodChannel('$_kIconButtonViewType/$id');
-    channel.setMethodCallHandler((MethodCall call) async {
-      if (call.method == 'onPressed') widget.onPressed?.call();
-      return null;
-    });
-    _channel = channel;
-    await _applySize(channel.invokeMapMethod<String, dynamic>('getIntrinsicSize'));
-  }
-
-  Future<void> _applySize(Future<Map<String, dynamic>?> call) async {
-    final Map<String, dynamic>? res = await call;
-    if (res != null && mounted) {
-      setState(() {
-        _size = Size((res['width'] as num).toDouble(), (res['height'] as num).toDouble());
-      });
-    }
+  @override
+  Future<dynamic> handleCall(MethodCall call) async {
+    if (call.method == 'onPressed') widget.onPressed?.call();
+    return null;
   }
 
   @override
   void didUpdateWidget(LiquidGlassIconButton oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.sfSymbol != widget.sfSymbol ||
-        oldWidget.size != widget.size ||
-        oldWidget.iconSize != widget.iconSize ||
-        oldWidget.tint != widget.tint ||
-        oldWidget.iconColor != widget.iconColor ||
-        oldWidget.borderRadius != widget.borderRadius ||
-        oldWidget.interactive != widget.interactive) {
-      _applySize(_channel?.invokeMapMethod<String, dynamic>('updateConfig', _params()) ??
-          Future<Map<String, dynamic>?>.value());
-    }
+    syncConfig();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
+    if (!isGlassPlatform) {
       return IconButton.filled(
         onPressed: widget.onPressed,
         iconSize: widget.iconSize,
-        icon: const Icon(Icons.star),
+        color: widget.iconColor,
+        icon: Icon(widget.fallbackIcon),
       );
     }
-
-    final Size size = _size ?? Size(widget.size, widget.size);
-    return SizedBox(
-      width: size.width,
-      height: size.height,
-      child: UiKitView(
-        viewType: _kIconButtonViewType,
-        creationParams: _params(),
-        creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: _onCreated,
-        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-          Factory<TapGestureRecognizer>(TapGestureRecognizer.new),
-        },
-      ),
-    );
+    return glassView(estimatedSize: Size(widget.size, widget.size));
   }
 }

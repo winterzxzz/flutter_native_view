@@ -57,6 +57,9 @@ final class GlassTogglePlatformView: NSObject, FlutterPlatformView {
       case "setValue":
         if let v = call.arguments as? Bool { self.model.isOn = v }
         result(nil)
+      case "updateConfig":
+        self.model.apply(args: call.arguments as? [String: Any] ?? [:])
+        result(nil)
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -75,6 +78,11 @@ final class GlassToggleModel: ObservableObject {
 
   init(args: [String: Any]) {
     isOn = args["value"] as? Bool ?? false
+    tint = GlassColor.fromARGB(args["tint"] as? Int)
+  }
+
+  func apply(args: [String: Any]) {
+    isOn = args["value"] as? Bool ?? isOn
     tint = GlassColor.fromARGB(args["tint"] as? Int)
   }
 }

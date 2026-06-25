@@ -1,7 +1,7 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import 'glass_platform_view.dart';
 
 const String _kColorPickerViewType = 'flutter_native_view/glass_color_picker';
 
@@ -23,56 +23,46 @@ class LiquidGlassColorPicker extends StatefulWidget {
   State<LiquidGlassColorPicker> createState() => _LiquidGlassColorPickerState();
 }
 
-class _LiquidGlassColorPickerState extends State<LiquidGlassColorPicker> {
-  MethodChannel? _channel;
-  Size? _size;
+class _LiquidGlassColorPickerState extends State<LiquidGlassColorPicker>
+    with GlassPlatformViewMixin<LiquidGlassColorPicker> {
+  @override
+  String get glassViewType => _kColorPickerViewType;
 
-  Map<String, dynamic> _params() => <String, dynamic>{
+  @override
+  bool get measuresSize => true;
+
+  @override
+  Map<String, dynamic> buildParams() => <String, dynamic>{
         'color': widget.value.toARGB32(),
       };
 
-  Future<void> _onCreated(int id) async {
-    final MethodChannel channel = MethodChannel('$_kColorPickerViewType/$id');
-    channel.setMethodCallHandler((MethodCall call) async {
-      if (call.method == 'onChanged') {
-        final int argb = call.arguments as int;
-        widget.onChanged(Color.fromARGB(
-          (argb >> 24) & 0xFF,
-          (argb >> 16) & 0xFF,
-          (argb >> 8) & 0xFF,
-          argb & 0xFF,
-        ));
-      }
-      return null;
-    });
-    _channel = channel;
-    await _applySize(
-        channel.invokeMapMethod<String, dynamic>('getIntrinsicSize'));
-  }
-
-  Future<void> _applySize(Future<Map<String, dynamic>?> call) async {
-    final Map<String, dynamic>? res = await call;
-    if (res != null && mounted) {
-      setState(() {
-        _size = Size(
-          (res['width'] as num).toDouble(),
-          (res['height'] as num).toDouble(),
-        );
-      });
+  @override
+  Future<dynamic> handleCall(MethodCall call) async {
+    if (call.method == 'onChanged') {
+      final int argb = call.arguments as int;
+      widget.onChanged(Color.fromARGB(
+        (argb >> 24) & 0xFF,
+        (argb >> 16) & 0xFF,
+        (argb >> 8) & 0xFF,
+        argb & 0xFF,
+      ));
     }
+    return null;
   }
 
   @override
   void didUpdateWidget(LiquidGlassColorPicker oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // Color is the only prop and it changes continuously while dragging the
+    // wheel, so use the lightweight `setValue` instead of a full re-measure.
     if (oldWidget.value != widget.value) {
-      _channel?.invokeMethod<void>('setValue', widget.value.toARGB32());
+      channel?.invokeMethod<void>('setValue', widget.value.toARGB32());
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
+    if (!isGlassPlatform) {
       return FilledButton.icon(
         icon: Icon(Icons.palette, color: widget.value),
         label: Text(widget.value.toARGB32().toRadixString(16)),
@@ -82,12 +72,12 @@ class _LiquidGlassColorPickerState extends State<LiquidGlassColorPicker> {
             builder: (BuildContext ctx) {
               return SimpleDialog(
                 title: const Text('Pick a color'),
-                children: [
+                children: <Widget>[
                   for (final Color c in _presets)
                     SimpleDialogOption(
                       onPressed: () => Navigator.of(ctx).pop(c),
                       child: Row(
-                        children: [
+                        children: <Widget>[
                           Container(
                             width: 24,
                             height: 24,
@@ -112,25 +102,11 @@ class _LiquidGlassColorPickerState extends State<LiquidGlassColorPicker> {
         },
       );
     }
-
-    final Size size = _size ?? const Size(60, 44);
-    return SizedBox(
-      width: size.width,
-      height: size.height,
-      child: UiKitView(
-        viewType: _kColorPickerViewType,
-        creationParams: _params(),
-        creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: _onCreated,
-        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-          Factory<TapGestureRecognizer>(TapGestureRecognizer.new),
-        },
-      ),
-    );
+    return glassView(estimatedSize: const Size(60, 44));
   }
 }
 
-const List<Color> _presets = [
+const List<Color> _presets = <Color>[
   Color(0xFFFF0000),
   Color(0xFF00FF00),
   Color(0xFF0000FF),

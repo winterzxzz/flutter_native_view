@@ -1,8 +1,7 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'glass_platform_view.dart';
 import 'liquid_glass_theme.dart';
 
 const String _kSliderViewType = 'flutter_native_view/glass_slider';
@@ -18,51 +17,56 @@ class LiquidGlassSlider extends StatefulWidget {
     this.min = 0.0,
     this.max = 1.0,
     this.tint,
+    this.height = 32,
   });
 
   final double value;
   final ValueChanged<double> onChanged;
   final double min;
   final double max;
+
+  /// Optional tint color. Falls back to the [LiquidGlassTheme] tint.
   final Color? tint;
+
+  /// Track height. Defaults to 32. Width always fills the parent.
+  final double height;
 
   @override
   State<LiquidGlassSlider> createState() => _LiquidGlassSliderState();
 }
 
-class _LiquidGlassSliderState extends State<LiquidGlassSlider> {
-  MethodChannel? _channel;
+class _LiquidGlassSliderState extends State<LiquidGlassSlider>
+    with GlassPlatformViewMixin<LiquidGlassSlider> {
+  @override
+  String get glassViewType => _kSliderViewType;
 
-  Map<String, dynamic> _params() => <String, dynamic>{
-        'value': widget.value,
-        'min': widget.min,
-        'max': widget.max,
-        'tint': (widget.tint ?? LiquidGlassTheme.of(context).tint)?.toARGB32(),
-        'respectAccessibility': LiquidGlassTheme.of(context).respectAccessibility,
-      };
+  @override
+  Map<String, dynamic> buildParams() {
+    final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
+    return <String, dynamic>{
+      'value': widget.value,
+      'min': widget.min,
+      'max': widget.max,
+      'tint': (widget.tint ?? t.tint)?.toARGB32(),
+      'respectAccessibility': t.respectAccessibility,
+    };
+  }
 
-  void _onCreated(int id) {
-    final MethodChannel channel = MethodChannel('$_kSliderViewType/$id');
-    channel.setMethodCallHandler((MethodCall call) async {
-      if (call.method == 'onChanged') widget.onChanged(call.arguments as double);
-      return null;
-    });
-    _channel = channel;
+  @override
+  Future<dynamic> handleCall(MethodCall call) async {
+    if (call.method == 'onChanged') widget.onChanged(call.arguments as double);
+    return null;
   }
 
   @override
   void didUpdateWidget(LiquidGlassSlider oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.value != widget.value ||
-        oldWidget.min != widget.min ||
-        oldWidget.max != widget.max) {
-      _channel?.invokeMethod<void>('setValue', widget.value);
-    }
+    syncConfig();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
+    if (!isGlassPlatform) {
       return Slider(
         value: widget.value.clamp(widget.min, widget.max),
         onChanged: widget.onChanged,
@@ -71,19 +75,10 @@ class _LiquidGlassSliderState extends State<LiquidGlassSlider> {
         activeColor: widget.tint,
       );
     }
-
-    return SizedBox(
+    return glassView(
       width: double.infinity,
-      height: 32,
-      child: UiKitView(
-        viewType: _kSliderViewType,
-        creationParams: _params(),
-        creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: _onCreated,
-        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-          Factory<EagerGestureRecognizer>(EagerGestureRecognizer.new),
-        },
-      ),
+      height: widget.height,
+      gesture: GlassGesture.eager,
     );
   }
 }

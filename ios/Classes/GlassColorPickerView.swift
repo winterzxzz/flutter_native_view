@@ -65,6 +65,9 @@ final class GlassColorPickerPlatformView: NSObject, FlutterPlatformView {
           )
         }
         result(nil)
+      case "updateConfig":
+        self.model.apply(args: call.arguments as? [String: Any] ?? [:])
+        DispatchQueue.main.async { result(self.intrinsicSize()) }
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -91,6 +94,12 @@ final class GlassColorPickerModel: ObservableObject {
   init(args: [String: Any]) {
     let argb = args["color"] as? Int ?? 0xFF000000
     selectedColor = GlassColor.fromARGB(argb) ?? .white
+  }
+
+  func apply(args: [String: Any]) {
+    if let argb = args["color"] as? Int {
+      selectedColor = GlassColor.fromARGB(argb) ?? selectedColor
+    }
   }
 }
 

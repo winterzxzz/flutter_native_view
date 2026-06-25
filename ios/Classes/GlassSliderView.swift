@@ -56,6 +56,9 @@ final class GlassSliderPlatformView: NSObject, FlutterPlatformView {
       case "setValue":
         self.model.value = call.arguments as? Double ?? self.model.value
         result(nil)
+      case "updateConfig":
+        self.model.apply(args: call.arguments as? [String: Any] ?? [:])
+        result(nil)
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -78,6 +81,13 @@ final class GlassSliderModel: ObservableObject {
     value = args["value"] as? Double ?? 0
     min = args["min"] as? Double ?? 0
     max = args["max"] as? Double ?? 1
+    tint = GlassColor.fromARGB(args["tint"] as? Int)
+  }
+
+  func apply(args: [String: Any]) {
+    value = args["value"] as? Double ?? value
+    min = args["min"] as? Double ?? min
+    max = args["max"] as? Double ?? max
     tint = GlassColor.fromARGB(args["tint"] as? Int)
   }
 }

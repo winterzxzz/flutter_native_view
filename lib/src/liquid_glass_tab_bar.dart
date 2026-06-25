@@ -1,8 +1,7 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'glass_platform_view.dart';
 import 'liquid_glass_theme.dart';
 
 const String _kTabBarViewType = 'flutter_native_view/glass_tab_bar';
@@ -52,7 +51,8 @@ class LiquidGlassTabBar extends StatefulWidget {
   final VoidCallback? onAccessoryTap;
 
   /// Forces the bar's light/dark appearance instead of following the device
-  /// system trait. When `null`, the system trait is used.
+  /// system trait. When `null`, falls back to the [LiquidGlassTheme] brightness,
+  /// otherwise the system trait is used.
   final Brightness? brightness;
 
   @override
@@ -78,44 +78,48 @@ class TabItem {
   final String? badge;
 }
 
-class _LiquidGlassTabBarState extends State<LiquidGlassTabBar> {
-  MethodChannel? _channel;
+class _LiquidGlassTabBarState extends State<LiquidGlassTabBar>
+    with GlassPlatformViewMixin<LiquidGlassTabBar> {
+  @override
+  String get glassViewType => _kTabBarViewType;
 
-  List<Map<String, dynamic>> _itemsJson() => widget.items
-      .map((item) => <String, dynamic>{
-            'label': item.label,
-            'sfSymbol': item.sfSymbol,
-            'badge': item.badge,
-          })
-      .toList(growable: false);
+  Brightness? get _brightness =>
+      widget.brightness ?? LiquidGlassTheme.of(context).brightness;
 
-  Map<String, dynamic> _params() => <String, dynamic>{
-        'items': _itemsJson(),
-        'currentIndex': widget.currentIndex,
-        'accessorySymbol': widget.accessorySymbol,
-        'tint': (widget.tint ?? LiquidGlassTheme.of(context).tint)?.toARGB32(),
-        'brightness': widget.brightness?.name,
-        'respectAccessibility': LiquidGlassTheme.of(context).respectAccessibility,
-      };
+  @override
+  Map<String, dynamic> buildParams() {
+    final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
+    return <String, dynamic>{
+      'items': widget.items
+          .map((TabItem item) => <String, dynamic>{
+                'label': item.label,
+                'sfSymbol': item.sfSymbol,
+                'badge': item.badge,
+              })
+          .toList(growable: false),
+      'currentIndex': widget.currentIndex,
+      'accessorySymbol': widget.accessorySymbol,
+      'tint': (widget.tint ?? t.tint)?.toARGB32(),
+      'brightness': _brightness?.name,
+      'respectAccessibility': t.respectAccessibility,
+    };
+  }
 
-  void _onCreated(int id) {
-    final MethodChannel channel = MethodChannel('$_kTabBarViewType/$id');
-    channel.setMethodCallHandler((MethodCall call) async {
-      switch (call.method) {
-        case 'onIndexChanged':
-          widget.onTap(call.arguments as int);
-        case 'onAccessoryTap':
-          widget.onAccessoryTap?.call();
-      }
-      return null;
-    });
-    _channel = channel;
+  @override
+  Future<dynamic> handleCall(MethodCall call) async {
+    switch (call.method) {
+      case 'onIndexChanged':
+        widget.onTap(call.arguments as int);
+      case 'onAccessoryTap':
+        widget.onAccessoryTap?.call();
+    }
+    return null;
   }
 
   void _onScroll() {
     final ScrollController? c = widget.scrollController;
     if (c == null || !c.hasClients) return;
-    _channel?.invokeMethod<void>('setScrollOffset', c.position.pixels);
+    channel?.invokeMethod<void>('setScrollOffset', c.position.pixels);
   }
 
   @override
@@ -137,52 +141,37 @@ class _LiquidGlassTabBarState extends State<LiquidGlassTabBar> {
       oldWidget.scrollController?.removeListener(_onScroll);
       widget.scrollController?.addListener(_onScroll);
     }
-    if (oldWidget.currentIndex != widget.currentIndex ||
-        oldWidget.accessorySymbol != widget.accessorySymbol ||
-        oldWidget.tint != widget.tint ||
-        oldWidget.brightness != widget.brightness) {
-      _channel?.invokeMethod<void>('updateConfig', _params());
-    }
+    syncConfig();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
+    if (!isGlassPlatform) {
       final Widget bar = NavigationBar(
         selectedIndex: widget.currentIndex,
         onDestinationSelected: widget.onTap,
         destinations: widget.items
-            .map((item) => NavigationDestination(
+            .map((TabItem item) => NavigationDestination(
                   icon: item.sfSymbol != null
-                      ? Icon(Icons.abc)
+                      ? const Icon(Icons.abc)
                       : const Icon(Icons.circle),
                   label: item.label,
                 ))
             .toList(growable: false),
       );
-      if (widget.brightness == null) return bar;
-      return Theme(
-        data: ThemeData(brightness: widget.brightness!),
-        child: bar,
-      );
+      final Brightness? b = _brightness;
+      if (b == null) return bar;
+      return Theme(data: ThemeData(brightness: b), child: bar);
     }
 
     // Backed by a real native UITabBarController, so it needs room for the
     // system bar plus the bottom safe-area region. Pin this to the screen's
     // bottom edge so the OS resolves the safe-area inset and floats the glass
     // bar above the home indicator.
-    return SizedBox(
+    return glassView(
       width: double.infinity,
       height: 100,
-      child: UiKitView(
-        viewType: _kTabBarViewType,
-        creationParams: _params(),
-        creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: _onCreated,
-        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-          Factory<EagerGestureRecognizer>(EagerGestureRecognizer.new),
-        },
-      ),
+      gesture: GlassGesture.eager,
     );
   }
 }

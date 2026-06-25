@@ -2,6 +2,7 @@
 library;
 
 export 'src/bar_action.dart';
+export 'src/glass_platform_view.dart' show GlassGesture;
 export 'src/liquid_glass_activity_indicator.dart';
 export 'src/liquid_glass_alert.dart';
 export 'src/liquid_glass_button.dart';

@@ -1,8 +1,7 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'glass_platform_view.dart';
 import 'liquid_glass_theme.dart';
 
 const String _kCheckboxViewType = 'flutter_native_view/glass_checkbox';
@@ -18,6 +17,7 @@ class LiquidGlassCheckbox extends StatefulWidget {
     required this.value,
     required this.onChanged,
     this.tint,
+    this.size = 28,
   });
 
   /// Whether the checkbox is currently checked.
@@ -30,14 +30,20 @@ class LiquidGlassCheckbox extends StatefulWidget {
   /// tint.
   final Color? tint;
 
+  /// Box size (width = height). Defaults to 28.
+  final double size;
+
   @override
   State<LiquidGlassCheckbox> createState() => _LiquidGlassCheckboxState();
 }
 
-class _LiquidGlassCheckboxState extends State<LiquidGlassCheckbox> {
-  MethodChannel? _channel;
+class _LiquidGlassCheckboxState extends State<LiquidGlassCheckbox>
+    with GlassPlatformViewMixin<LiquidGlassCheckbox> {
+  @override
+  String get glassViewType => _kCheckboxViewType;
 
-  Map<String, dynamic> _params() {
+  @override
+  Map<String, dynamic> buildParams() {
     final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
     return <String, dynamic>{
       'value': widget.value,
@@ -46,44 +52,26 @@ class _LiquidGlassCheckboxState extends State<LiquidGlassCheckbox> {
     };
   }
 
-  void _onCreated(int id) {
-    final MethodChannel channel = MethodChannel('$_kCheckboxViewType/$id');
-    channel.setMethodCallHandler((MethodCall call) async {
-      if (call.method == 'onChanged') widget.onChanged(call.arguments as bool);
-      return null;
-    });
-    _channel = channel;
+  @override
+  Future<dynamic> handleCall(MethodCall call) async {
+    if (call.method == 'onChanged') widget.onChanged(call.arguments as bool);
+    return null;
   }
 
   @override
   void didUpdateWidget(LiquidGlassCheckbox oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.value != widget.value) {
-      _channel?.invokeMethod<void>('setValue', widget.value);
-    }
+    syncConfig();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
+    if (!isGlassPlatform) {
       return Checkbox(
         value: widget.value,
         onChanged: (bool? v) => widget.onChanged(v ?? false),
       );
     }
-
-    return SizedBox(
-      width: 28,
-      height: 28,
-      child: UiKitView(
-        viewType: _kCheckboxViewType,
-        creationParams: _params(),
-        creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: _onCreated,
-        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-          Factory<TapGestureRecognizer>(TapGestureRecognizer.new),
-        },
-      ),
-    );
+    return glassView(width: widget.size, height: widget.size);
   }
 }

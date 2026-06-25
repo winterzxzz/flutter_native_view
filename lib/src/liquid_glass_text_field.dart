@@ -1,8 +1,7 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'glass_platform_view.dart';
 import 'liquid_glass_theme.dart';
 
 const String _kTextFieldViewType = 'flutter_native_view/glass_text_field';
@@ -21,6 +20,7 @@ class LiquidGlassTextField extends StatefulWidget {
     this.placeholder,
     this.obscureText = false,
     this.tint,
+    this.height = 44,
   });
 
   /// Current field text (controlled value).
@@ -41,14 +41,20 @@ class LiquidGlassTextField extends StatefulWidget {
   /// Optional glass tint. Falls back to the [LiquidGlassTheme] tint.
   final Color? tint;
 
+  /// Field height. Defaults to 44. Width always fills the parent.
+  final double height;
+
   @override
   State<LiquidGlassTextField> createState() => _LiquidGlassTextFieldState();
 }
 
-class _LiquidGlassTextFieldState extends State<LiquidGlassTextField> {
-  MethodChannel? _channel;
+class _LiquidGlassTextFieldState extends State<LiquidGlassTextField>
+    with GlassPlatformViewMixin<LiquidGlassTextField> {
+  @override
+  String get glassViewType => _kTextFieldViewType;
 
-  Map<String, dynamic> _params() {
+  @override
+  Map<String, dynamic> buildParams() {
     final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
     return <String, dynamic>{
       'text': widget.text,
@@ -59,31 +65,31 @@ class _LiquidGlassTextFieldState extends State<LiquidGlassTextField> {
     };
   }
 
-  void _onCreated(int id) {
-    final MethodChannel channel = MethodChannel('$_kTextFieldViewType/$id');
-    channel.setMethodCallHandler((MethodCall call) async {
-      switch (call.method) {
-        case 'onChanged':
-          widget.onChanged(call.arguments as String);
-        case 'onSubmitted':
-          widget.onSubmitted?.call(call.arguments as String);
-      }
-      return null;
-    });
-    _channel = channel;
+  @override
+  Future<dynamic> handleCall(MethodCall call) async {
+    switch (call.method) {
+      case 'onChanged':
+        widget.onChanged(call.arguments as String);
+      case 'onSubmitted':
+        widget.onSubmitted?.call(call.arguments as String);
+    }
+    return null;
   }
 
   @override
   void didUpdateWidget(LiquidGlassTextField oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // Push only the text via the lightweight `setText` path. A full
+    // `updateConfig` would reset the live UITextField and drop the cursor/focus
+    // mid-typing, so other props are applied at creation only.
     if (oldWidget.text != widget.text) {
-      _channel?.invokeMethod<void>('setText', widget.text);
+      channel?.invokeMethod<void>('setText', widget.text);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
+    if (!isGlassPlatform) {
       return TextField(
         controller: TextEditingController.fromValue(
           TextEditingValue(
@@ -102,19 +108,10 @@ class _LiquidGlassTextFieldState extends State<LiquidGlassTextField> {
         ),
       );
     }
-
-    return SizedBox(
+    return glassView(
       width: double.infinity,
-      height: 44,
-      child: UiKitView(
-        viewType: _kTextFieldViewType,
-        creationParams: _params(),
-        creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: _onCreated,
-        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-          Factory<EagerGestureRecognizer>(EagerGestureRecognizer.new),
-        },
-      ),
+      height: widget.height,
+      gesture: GlassGesture.eager,
     );
   }
 }

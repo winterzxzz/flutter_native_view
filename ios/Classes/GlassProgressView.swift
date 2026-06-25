@@ -52,6 +52,9 @@ final class GlassProgressPlatformView: NSObject, FlutterPlatformView {
       case "setValue":
         self.model.value = call.arguments as? Double ?? self.model.value
         result(nil)
+      case "updateConfig":
+        self.model.apply(args: call.arguments as? [String: Any] ?? [:])
+        result(nil)
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -69,6 +72,11 @@ final class GlassProgressModel: ObservableObject {
 
   init(args: [String: Any]) {
     value = args["value"] as? Double ?? 0
+    tint = GlassColor.fromARGB(args["tint"] as? Int)
+  }
+
+  func apply(args: [String: Any]) {
+    value = args["value"] as? Double ?? value
     tint = GlassColor.fromARGB(args["tint"] as? Int)
   }
 }

@@ -1,7 +1,8 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import 'glass_platform_view.dart';
+import 'liquid_glass_theme.dart';
 
 const String _kStepperViewType = 'flutter_native_view/glass_stepper';
 
@@ -16,6 +17,7 @@ class LiquidGlassStepper extends StatefulWidget {
     this.step = 1,
     this.min,
     this.max,
+    this.tint,
   });
 
   final int value;
@@ -24,58 +26,52 @@ class LiquidGlassStepper extends StatefulWidget {
   final int? min;
   final int? max;
 
+  /// Optional tint color. Falls back to the [LiquidGlassTheme] tint.
+  final Color? tint;
+
   @override
   State<LiquidGlassStepper> createState() => _LiquidGlassStepperState();
 }
 
-class _LiquidGlassStepperState extends State<LiquidGlassStepper> {
-  MethodChannel? _channel;
-  Size? _size;
+class _LiquidGlassStepperState extends State<LiquidGlassStepper>
+    with GlassPlatformViewMixin<LiquidGlassStepper> {
+  @override
+  String get glassViewType => _kStepperViewType;
 
-  Map<String, dynamic> _params() => <String, dynamic>{
-        'value': widget.value,
-        'step': widget.step,
-        'min': widget.min,
-        'max': widget.max,
-      };
+  @override
+  bool get measuresSize => true;
 
-  Future<void> _onCreated(int id) async {
-    final MethodChannel channel = MethodChannel('$_kStepperViewType/$id');
-    channel.setMethodCallHandler((MethodCall call) async {
-      if (call.method == 'onChanged') widget.onChanged(call.arguments as int);
-      return null;
-    });
-    _channel = channel;
-    await _applySize(
-        channel.invokeMapMethod<String, dynamic>('getIntrinsicSize'));
+  @override
+  Map<String, dynamic> buildParams() {
+    final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
+    return <String, dynamic>{
+      'value': widget.value,
+      'step': widget.step,
+      'min': widget.min,
+      'max': widget.max,
+      'tint': (widget.tint ?? t.tint)?.toARGB32(),
+      'respectAccessibility': t.respectAccessibility,
+    };
   }
 
-  Future<void> _applySize(Future<Map<String, dynamic>?> call) async {
-    final Map<String, dynamic>? res = await call;
-    if (res != null && mounted) {
-      setState(() {
-        _size = Size(
-          (res['width'] as num).toDouble(),
-          (res['height'] as num).toDouble(),
-        );
-      });
-    }
+  @override
+  Future<dynamic> handleCall(MethodCall call) async {
+    if (call.method == 'onChanged') widget.onChanged(call.arguments as int);
+    return null;
   }
 
   @override
   void didUpdateWidget(LiquidGlassStepper oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.value != widget.value) {
-      _channel?.invokeMethod<void>('setValue', widget.value);
-    }
+    syncConfig();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
+    if (!isGlassPlatform) {
       return Row(
         mainAxisSize: MainAxisSize.min,
-        children: [
+        children: <Widget>[
           IconButton(
             icon: const Icon(Icons.remove),
             onPressed: widget.min != null && widget.value <= widget.min!
@@ -92,20 +88,6 @@ class _LiquidGlassStepperState extends State<LiquidGlassStepper> {
         ],
       );
     }
-
-    final Size size = _size ?? const Size(160, 44);
-    return SizedBox(
-      width: size.width,
-      height: size.height,
-      child: UiKitView(
-        viewType: _kStepperViewType,
-        creationParams: _params(),
-        creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: _onCreated,
-        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-          Factory<TapGestureRecognizer>(TapGestureRecognizer.new),
-        },
-      ),
-    );
+    return glassView(estimatedSize: const Size(160, 44));
   }
 }

@@ -1,8 +1,7 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'glass_platform_view.dart';
 import 'liquid_glass_theme.dart';
 
 const String _kMenuViewType = 'flutter_native_view/glass_menu';
@@ -49,72 +48,62 @@ class LiquidGlassMenu extends StatefulWidget {
   /// Optional SF Symbol shown on the button before the label.
   final String? sfSymbol;
 
-  /// Optional glass tint color.
+  /// Optional glass tint color. Falls back to the [LiquidGlassTheme] tint.
   final Color? tint;
 
   /// Optional icon/label foreground color. When set, overrides the tint for
   /// the button's symbol and text so they can be white regardless of tint.
+  /// Falls back to the [LiquidGlassTheme] icon color.
   final Color? iconColor;
 
   @override
   State<LiquidGlassMenu> createState() => _LiquidGlassMenuState();
 }
 
-class _LiquidGlassMenuState extends State<LiquidGlassMenu> {
-  MethodChannel? _channel;
-  Size? _size;
+class _LiquidGlassMenuState extends State<LiquidGlassMenu>
+    with GlassPlatformViewMixin<LiquidGlassMenu> {
+  @override
+  String get glassViewType => _kMenuViewType;
 
-  Map<String, dynamic> _params() => <String, dynamic>{
-        'label': widget.label,
-        'sfSymbol': widget.sfSymbol ?? '',
-        'items': widget.items
-            .map((MenuItem m) => <String, dynamic>{
-                  'id': m.id,
-                  'title': m.title,
-                  'sfSymbol': m.sfSymbol ?? '',
-                })
-            .toList(),
-        'tint': (widget.tint ?? LiquidGlassTheme.of(context).tint)?.toARGB32(),
-        'iconColor': widget.iconColor?.toARGB32(),
-        'respectAccessibility': LiquidGlassTheme.of(context).respectAccessibility,
-      };
+  @override
+  bool get measuresSize => true;
 
-  Future<void> _onCreated(int id) async {
-    final MethodChannel channel = MethodChannel('$_kMenuViewType/$id');
-    channel.setMethodCallHandler((MethodCall call) async {
-      if (call.method == 'onSelected') {
-        widget.onSelected(call.arguments as String);
-      }
-      return null;
-    });
-    _channel = channel;
-    await _applySize(channel.invokeMapMethod<String, dynamic>('getIntrinsicSize'));
+  @override
+  Map<String, dynamic> buildParams() {
+    final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
+    return <String, dynamic>{
+      'label': widget.label,
+      'sfSymbol': widget.sfSymbol ?? '',
+      'items': widget.items
+          .map((MenuItem m) => <String, dynamic>{
+                'id': m.id,
+                'title': m.title,
+                'sfSymbol': m.sfSymbol ?? '',
+              })
+          .toList(),
+      'tint': (widget.tint ?? t.tint)?.toARGB32(),
+      'iconColor': (widget.iconColor ?? t.iconColor)?.toARGB32(),
+      'respectAccessibility': t.respectAccessibility,
+    };
   }
 
-  Future<void> _applySize(Future<Map<String, dynamic>?> call) async {
-    final Map<String, dynamic>? res = await call;
-    if (res != null && mounted) {
-      setState(() {
-        _size = Size((res['width'] as num).toDouble(), (res['height'] as num).toDouble());
-      });
+  @override
+  Future<dynamic> handleCall(MethodCall call) async {
+    if (call.method == 'onSelected') {
+      widget.onSelected(call.arguments as String);
     }
+    return null;
   }
 
   @override
   void didUpdateWidget(LiquidGlassMenu oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.label != widget.label ||
-        oldWidget.items != widget.items ||
-        oldWidget.tint != widget.tint ||
-        oldWidget.iconColor != widget.iconColor) {
-      _applySize(_channel?.invokeMapMethod<String, dynamic>('updateConfig', _params()) ??
-          Future<Map<String, dynamic>?>.value());
-    }
+    syncConfig();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
+    if (!isGlassPlatform) {
       return PopupMenuButton<String>(
         onSelected: widget.onSelected,
         itemBuilder: (BuildContext context) => widget.items
@@ -126,20 +115,6 @@ class _LiquidGlassMenuState extends State<LiquidGlassMenu> {
         child: Text(widget.label),
       );
     }
-
-    final Size size = _size ?? const Size(100, 44);
-    return SizedBox(
-      width: size.width,
-      height: size.height,
-      child: UiKitView(
-        viewType: _kMenuViewType,
-        creationParams: _params(),
-        creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: _onCreated,
-        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-          Factory<TapGestureRecognizer>(TapGestureRecognizer.new),
-        },
-      ),
-    );
+    return glassView(estimatedSize: const Size(100, 44));
   }
 }

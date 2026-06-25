@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'glass_platform_view.dart';
 import 'liquid_glass_theme.dart';
 
 const String _kContainerViewType = 'flutter_native_view/glass_container';
@@ -51,10 +52,13 @@ class LiquidGlassContainer extends StatefulWidget {
   State<LiquidGlassContainer> createState() => _LiquidGlassContainerState();
 }
 
-class _LiquidGlassContainerState extends State<LiquidGlassContainer> {
-  MethodChannel? _channel;
+class _LiquidGlassContainerState extends State<LiquidGlassContainer>
+    with GlassPlatformViewMixin<LiquidGlassContainer> {
+  @override
+  String get glassViewType => _kContainerViewType;
 
-  Map<String, dynamic> _params() {
+  @override
+  Map<String, dynamic> buildParams() {
     final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
     return <String, dynamic>{
       'tint': (widget.tint ?? t.tint)?.toARGB32(),
@@ -64,22 +68,10 @@ class _LiquidGlassContainerState extends State<LiquidGlassContainer> {
     };
   }
 
-  Future<void> _onPlatformViewCreated(int id) async {
-    if (widget.onPressed == null) return;
-    final MethodChannel ch =
-        MethodChannel('flutter_native_view/glass_container/$id');
-    ch.setMethodCallHandler((MethodCall call) async {
-      if (call.method == 'onPressed') widget.onPressed?.call();
-      return null;
-    });
-    _channel = ch;
-  }
-
   @override
-  void dispose() {
-    _channel?.setMethodCallHandler(null);
-    _channel = null;
-    super.dispose();
+  Future<dynamic> handleCall(MethodCall call) async {
+    if (call.method == 'onPressed') widget.onPressed?.call();
+    return null;
   }
 
   @override
@@ -87,22 +79,25 @@ class _LiquidGlassContainerState extends State<LiquidGlassContainer> {
     final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
     final Color? tint = widget.tint ?? t.tint;
     final double radius = widget.borderRadius ?? t.borderRadius ?? 20;
-    if (defaultTargetPlatform != TargetPlatform.iOS) {
+    if (!isGlassPlatform) {
       final Widget box = DecoratedBox(
         decoration: BoxDecoration(
-          color: tint?.withValues(alpha: 0.15) ?? Colors.white.withValues(alpha: 0.12),
+          color: tint?.withValues(alpha: 0.15) ??
+              Colors.white.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(radius),
           border: Border.all(
-            color: tint?.withValues(alpha: 0.30) ?? Colors.white.withValues(alpha: 0.22),
+            color: tint?.withValues(alpha: 0.30) ??
+                Colors.white.withValues(alpha: 0.22),
           ),
         ),
         child: widget.child ?? const SizedBox.expand(),
       );
       if (widget.onPressed == null) return box;
       return GestureDetector(
-          onTap: widget.onPressed,
-          behavior: HitTestBehavior.opaque,
-          child: box);
+        onTap: widget.onPressed,
+        behavior: HitTestBehavior.opaque,
+        child: box,
+      );
     }
 
     final Set<Factory<OneSequenceGestureRecognizer>> recognizers =
@@ -113,10 +108,10 @@ class _LiquidGlassContainerState extends State<LiquidGlassContainer> {
             : const <Factory<OneSequenceGestureRecognizer>>{};
 
     final Widget glass = UiKitView(
-      viewType: _kContainerViewType,
-      creationParams: _params(),
+      viewType: glassViewType,
+      creationParams: buildParams(),
       creationParamsCodec: const StandardMessageCodec(),
-      onPlatformViewCreated: _onPlatformViewCreated,
+      onPlatformViewCreated: onGlassViewCreated,
       gestureRecognizers: recognizers,
     );
 

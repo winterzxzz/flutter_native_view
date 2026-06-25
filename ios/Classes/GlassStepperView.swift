@@ -58,6 +58,9 @@ final class GlassStepperPlatformView: NSObject, FlutterPlatformView {
       case "setValue":
         self.model.value = call.arguments as? Int ?? self.model.value
         result(nil)
+      case "updateConfig":
+        self.model.apply(args: call.arguments as? [String: Any] ?? [:])
+        DispatchQueue.main.async { result(self.intrinsicSize()) }
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -96,6 +99,13 @@ final class GlassStepperModel: ObservableObject {
   init(args: [String: Any]) {
     value = args["value"] as? Int ?? 0
     step = args["step"] as? Int ?? 1
+    min = args["min"] as? Int
+    max = args["max"] as? Int
+  }
+
+  func apply(args: [String: Any]) {
+    value = args["value"] as? Int ?? value
+    step = args["step"] as? Int ?? step
     min = args["min"] as? Int
     max = args["max"] as? Int
   }
