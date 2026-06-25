@@ -3,6 +3,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'liquid_glass_theme.dart';
+
 const String _kSegmentedViewType = 'flutter_native_view/glass_segmented';
 
 /// A native iOS segmented control (`UISegmentedControl`) with Liquid Glass
@@ -42,11 +44,15 @@ class _LiquidGlassSegmentedControlState
   MethodChannel? _channel;
   Size? _size;
 
-  Map<String, dynamic> _params() => <String, dynamic>{
-        'segments': widget.segments,
-        'selectedIndex': widget.selectedIndex,
-        'tint': widget.tint?.toARGB32(),
-      };
+  Map<String, dynamic> _params() {
+    final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
+    return <String, dynamic>{
+      'segments': widget.segments,
+      'selectedIndex': widget.selectedIndex,
+      'tint': (widget.tint ?? t.tint)?.toARGB32(),
+      'respectAccessibility': t.respectAccessibility,
+    };
+  }
 
   Future<void> _onCreated(int id) async {
     final MethodChannel channel = MethodChannel('$_kSegmentedViewType/$id');

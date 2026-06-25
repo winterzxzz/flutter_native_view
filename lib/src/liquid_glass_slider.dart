@@ -3,6 +3,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'liquid_glass_theme.dart';
+
 const String _kSliderViewType = 'flutter_native_view/glass_slider';
 
 /// A native SwiftUI slider with Liquid Glass styling on iOS 26+.
@@ -35,7 +37,8 @@ class _LiquidGlassSliderState extends State<LiquidGlassSlider> {
         'value': widget.value,
         'min': widget.min,
         'max': widget.max,
-        'tint': widget.tint?.toARGB32(),
+        'tint': (widget.tint ?? LiquidGlassTheme.of(context).tint)?.toARGB32(),
+        'respectAccessibility': LiquidGlassTheme.of(context).respectAccessibility,
       };
 
   void _onCreated(int id) {

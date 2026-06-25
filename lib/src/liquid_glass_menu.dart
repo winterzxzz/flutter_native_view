@@ -3,6 +3,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'liquid_glass_theme.dart';
+
 const String _kMenuViewType = 'flutter_native_view/glass_menu';
 
 /// A single entry inside a [LiquidGlassMenu].
@@ -67,7 +69,8 @@ class _LiquidGlassMenuState extends State<LiquidGlassMenu> {
                   'sfSymbol': m.sfSymbol ?? '',
                 })
             .toList(),
-        'tint': widget.tint?.toARGB32(),
+        'tint': (widget.tint ?? LiquidGlassTheme.of(context).tint)?.toARGB32(),
+        'respectAccessibility': LiquidGlassTheme.of(context).respectAccessibility,
       };
 
   Future<void> _onCreated(int id) async {

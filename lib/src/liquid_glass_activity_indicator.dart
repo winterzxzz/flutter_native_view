@@ -3,6 +3,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'liquid_glass_theme.dart';
+
 const String _kActivityIndicatorViewType = 'flutter_native_view/glass_activity_indicator';
 
 /// A native SwiftUI activity indicator (spinner) with Liquid Glass styling on
@@ -31,7 +33,8 @@ class _LiquidGlassActivityIndicatorState
     extends State<LiquidGlassActivityIndicator> {
   Map<String, dynamic> _params() => <String, dynamic>{
         'size': widget.size,
-        'tint': widget.tint?.toARGB32(),
+        'tint': (widget.tint ?? LiquidGlassTheme.of(context).tint)?.toARGB32(),
+        'respectAccessibility': LiquidGlassTheme.of(context).respectAccessibility,
       };
 
   @override

@@ -22,4 +22,5 @@ export 'src/liquid_glass_slider.dart';
 export 'src/liquid_glass_stepper.dart';
 export 'src/liquid_glass_switch.dart';
 export 'src/liquid_glass_tab_bar.dart';
+export 'src/liquid_glass_theme.dart';
 export 'src/liquid_glass_toolbar.dart';

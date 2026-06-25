@@ -3,6 +3,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'liquid_glass_theme.dart';
+
 const String _kContainerViewType = 'flutter_native_view/glass_container';
 
 /// A decorative glass panel rendered natively on iOS.
@@ -45,20 +47,27 @@ class LiquidGlassContainer extends StatefulWidget {
 }
 
 class _LiquidGlassContainerState extends State<LiquidGlassContainer> {
-  Map<String, dynamic> _params() => <String, dynamic>{
-        'tint': widget.tint?.toARGB32(),
-        'cornerRadius': widget.borderRadius,
-      };
+  Map<String, dynamic> _params() {
+    final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
+    return <String, dynamic>{
+      'tint': (widget.tint ?? t.tint)?.toARGB32(),
+      'cornerRadius': widget.borderRadius ?? t.borderRadius,
+      'respectAccessibility': t.respectAccessibility,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
+    final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
+    final Color? tint = widget.tint ?? t.tint;
+    final double radius = widget.borderRadius ?? t.borderRadius ?? 20;
     if (defaultTargetPlatform != TargetPlatform.iOS) {
       return DecoratedBox(
         decoration: BoxDecoration(
-          color: widget.tint?.withValues(alpha: 0.15) ?? Colors.white.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(widget.borderRadius ?? 20),
+          color: tint?.withValues(alpha: 0.15) ?? Colors.white.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(radius),
           border: Border.all(
-            color: widget.tint?.withValues(alpha: 0.30) ?? Colors.white.withValues(alpha: 0.22),
+            color: tint?.withValues(alpha: 0.30) ?? Colors.white.withValues(alpha: 0.22),
           ),
         ),
         child: widget.child ?? const SizedBox.expand(),

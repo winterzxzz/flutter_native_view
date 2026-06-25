@@ -3,6 +3,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'liquid_glass_theme.dart';
+
 const String _kToggleViewType = 'flutter_native_view/glass_toggle';
 
 /// A native SwiftUI toggle with Liquid Glass styling on iOS 26+.
@@ -31,7 +33,8 @@ class _LiquidGlassSwitchState extends State<LiquidGlassSwitch> {
 
   Map<String, dynamic> _params() => <String, dynamic>{
         'value': widget.value,
-        'tint': widget.tint?.toARGB32(),
+        'tint': (widget.tint ?? LiquidGlassTheme.of(context).tint)?.toARGB32(),
+        'respectAccessibility': LiquidGlassTheme.of(context).respectAccessibility,
       };
 
   void _onCreated(int id) {

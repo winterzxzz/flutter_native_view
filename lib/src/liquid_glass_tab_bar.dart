@@ -3,6 +3,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'liquid_glass_theme.dart';
+
 const String _kTabBarViewType = 'flutter_native_view/glass_tab_bar';
 
 /// A native iOS tab bar backed by a real `UITabBarController`, so the OS draws
@@ -77,7 +79,8 @@ class _LiquidGlassTabBarState extends State<LiquidGlassTabBar> {
         'items': _itemsJson(),
         'currentIndex': widget.currentIndex,
         'accessorySymbol': widget.accessorySymbol,
-        'tint': widget.tint?.toARGB32(),
+        'tint': (widget.tint ?? LiquidGlassTheme.of(context).tint)?.toARGB32(),
+        'respectAccessibility': LiquidGlassTheme.of(context).respectAccessibility,
       };
 
   void _onCreated(int id) {

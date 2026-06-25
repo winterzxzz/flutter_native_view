@@ -3,6 +3,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'liquid_glass_theme.dart';
+
 const String _kIconButtonViewType = 'flutter_native_view/glass_icon_button';
 
 /// A compact, icon-only button rendered by native SwiftUI with authentic Apple
@@ -21,7 +23,7 @@ class LiquidGlassIconButton extends StatefulWidget {
     this.iconSize = 20,
     this.tint,
     this.borderRadius,
-    this.interactive = true,
+    this.interactive,
   });
 
   /// SF Symbol name for the icon (e.g. "heart", "star.fill").
@@ -36,14 +38,16 @@ class LiquidGlassIconButton extends StatefulWidget {
   /// Icon size inside the button. Defaults to 20.
   final double iconSize;
 
-  /// Optional glass tint color.
+  /// Optional glass tint color. Falls back to the [LiquidGlassTheme] tint.
   final Color? tint;
 
-  /// Corner radius. When `null`, uses a circle (Capsule).
+  /// Corner radius. When `null`, falls back to the [LiquidGlassTheme] value,
+  /// otherwise a circle (Capsule).
   final double? borderRadius;
 
-  /// Whether the iOS 26 glass reacts to touch.
-  final bool interactive;
+  /// Whether the iOS 26 glass reacts to touch. When `null`, falls back to the
+  /// [LiquidGlassTheme] value, otherwise `true`.
+  final bool? interactive;
 
   @override
   State<LiquidGlassIconButton> createState() => _LiquidGlassIconButtonState();
@@ -53,14 +57,18 @@ class _LiquidGlassIconButtonState extends State<LiquidGlassIconButton> {
   MethodChannel? _channel;
   Size? _size;
 
-  Map<String, dynamic> _params() => <String, dynamic>{
-        'sfSymbol': widget.sfSymbol,
-        'size': widget.size,
-        'iconSize': widget.iconSize,
-        'tint': widget.tint?.toARGB32(),
-        'cornerRadius': widget.borderRadius,
-        'interactive': widget.interactive,
-      };
+  Map<String, dynamic> _params() {
+    final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
+    return <String, dynamic>{
+      'sfSymbol': widget.sfSymbol,
+      'size': widget.size,
+      'iconSize': widget.iconSize,
+      'tint': (widget.tint ?? t.tint)?.toARGB32(),
+      'cornerRadius': widget.borderRadius ?? t.borderRadius,
+      'interactive': widget.interactive ?? t.interactive ?? true,
+      'respectAccessibility': t.respectAccessibility,
+    };
+  }
 
   Future<void> _onCreated(int id) async {
     final MethodChannel channel = MethodChannel('$_kIconButtonViewType/$id');

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'bar_action.dart';
+import 'liquid_glass_theme.dart';
 
 const String _kNavigationBarViewType = 'flutter_native_view/glass_navigation_bar';
 
@@ -47,7 +48,8 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar> {
         'trailing': widget.trailing
             .map((a) => <String, dynamic>{'id': a.id, 'sfSymbol': a.sfSymbol})
             .toList(growable: false),
-        'tint': widget.tint?.toARGB32(),
+        'tint': (widget.tint ?? LiquidGlassTheme.of(context).tint)?.toARGB32(),
+        'respectAccessibility': LiquidGlassTheme.of(context).respectAccessibility,
       };
 
   void _onCreated(int id) {

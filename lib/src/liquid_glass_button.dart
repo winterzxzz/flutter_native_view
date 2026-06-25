@@ -3,6 +3,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'liquid_glass_theme.dart';
+
 const String _kButtonViewType = 'flutter_native_view/glass_button';
 
 /// A button rendered by native SwiftUI with authentic Apple Liquid Glass on
@@ -20,7 +22,7 @@ class LiquidGlassButton extends StatefulWidget {
     this.tint,
     this.labelColor,
     this.borderRadius,
-    this.interactive = true,
+    this.interactive,
   });
 
   /// A more prominent variant with a larger rounded shape.
@@ -33,7 +35,7 @@ class LiquidGlassButton extends StatefulWidget {
     Color? tint,
     Color? labelColor,
     double borderRadius = 28,
-    bool interactive = true,
+    bool? interactive,
   }) {
     return LiquidGlassButton(
       key: key,
@@ -61,16 +63,20 @@ class LiquidGlassButton extends StatefulWidget {
   final VoidCallback? onPressed;
 
   /// Optional glass tint color. Tints the glass material, not the label.
+  /// Falls back to the [LiquidGlassTheme] tint when `null`.
   final Color? tint;
 
-  /// Optional label text color. Defaults to white on iOS glass.
+  /// Optional label text color. Falls back to the [LiquidGlassTheme] label
+  /// color, otherwise white on iOS glass.
   final Color? labelColor;
 
-  /// Optional corner radius. When `null`, the native button is a capsule.
+  /// Optional corner radius. When `null`, falls back to the
+  /// [LiquidGlassTheme] value, otherwise the native button is a capsule.
   final double? borderRadius;
 
-  /// Whether the iOS 26 glass reacts to touch.
-  final bool interactive;
+  /// Whether the iOS 26 glass reacts to touch. When `null`, falls back to the
+  /// [LiquidGlassTheme] value, otherwise `true`.
+  final bool? interactive;
 
   @override
   State<LiquidGlassButton> createState() => _LiquidGlassButtonState();
@@ -80,16 +86,20 @@ class _LiquidGlassButtonState extends State<LiquidGlassButton> {
   MethodChannel? _channel;
   Size? _size;
 
-  Map<String, dynamic> _params() => <String, dynamic>{
-        'title': widget.label,
-        'leadingSymbol': widget.leadingSymbol,
-        'trailingSymbol': widget.trailingSymbol,
-        'tint': widget.tint?.toARGB32(),
-        'labelColor': widget.labelColor?.toARGB32(),
-        'cornerRadius': widget.borderRadius,
-        'interactive': widget.interactive,
-        'enabled': widget.onPressed != null,
-      };
+  Map<String, dynamic> _params() {
+    final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
+    return <String, dynamic>{
+      'title': widget.label,
+      'leadingSymbol': widget.leadingSymbol,
+      'trailingSymbol': widget.trailingSymbol,
+      'tint': (widget.tint ?? t.tint)?.toARGB32(),
+      'labelColor': (widget.labelColor ?? t.labelColor)?.toARGB32(),
+      'cornerRadius': widget.borderRadius ?? t.borderRadius,
+      'interactive': widget.interactive ?? t.interactive ?? true,
+      'respectAccessibility': t.respectAccessibility,
+      'enabled': widget.onPressed != null,
+    };
+  }
 
   Future<void> _onCreated(int id) async {
     final MethodChannel channel = MethodChannel('$_kButtonViewType/$id');

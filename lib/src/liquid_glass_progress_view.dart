@@ -3,6 +3,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'liquid_glass_theme.dart';
+
 const String _kProgressViewType = 'flutter_native_view/glass_progress';
 
 /// A native SwiftUI linear progress bar with Liquid Glass styling on iOS 26+.
@@ -31,7 +33,8 @@ class _LiquidGlassProgressViewState extends State<LiquidGlassProgressView> {
 
   Map<String, dynamic> _params() => <String, dynamic>{
         'value': widget.value,
-        'tint': widget.tint?.toARGB32(),
+        'tint': (widget.tint ?? LiquidGlassTheme.of(context).tint)?.toARGB32(),
+        'respectAccessibility': LiquidGlassTheme.of(context).respectAccessibility,
       };
 
   void _onCreated(int id) {
