@@ -66,7 +66,16 @@ final class GlassSegmentedPlatformView: NSObject, FlutterPlatformView {
   }
 
   private func intrinsicSize() -> [String: Double] {
-    guard let view = host?.view else { return ["width": 200, "height": 32] }
+    guard let host = host else { return ["width": 200, "height": 32] }
+    // Use the hosting controller's ideal sizing; .compressedSize truncates SwiftUI
+    // Text to zero width, which makes labels disappear.
+    let unbounded = CGSize(
+      width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+    if #available(iOS 16.0, *), let hosting = host as? UIHostingController<GlassSegmentedRoot> {
+      let size = hosting.sizeThatFits(in: unbounded)
+      return ["width": Double(ceil(size.width)), "height": Double(ceil(size.height))]
+    }
+    let view = host.view!
     view.setNeedsLayout()
     view.layoutIfNeeded()
     let size = view.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)

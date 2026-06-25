@@ -86,6 +86,34 @@ class _LiquidGlassButtonState extends State<LiquidGlassButton> {
   MethodChannel? _channel;
   Size? _size;
 
+  // Debug counters: how many times this button has rebuilt / been resized by
+  // the native side. Only active in debug builds; remove once flicker is tuned.
+  int _buildCount = 0;
+  int _resizeCount = 0;
+
+  // Approximate the native button size from the label up front so the view
+  // opens at roughly its final size. Without this it starts at a hardcoded
+  // placeholder and visibly resizes once Swift reports the real size, which
+  // reflows the surrounding layout on first paint.
+  Size _estimatedSize() {
+    final TextPainter tp = TextPainter(
+      text: TextSpan(
+        text: widget.label,
+        // Matches the native label font (.system(size: 17, weight: .semibold)).
+        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    const double iconWidth = 20; // SF Symbol at ~16pt + slack
+    const double iconSpacing = 6; // HStack spacing
+    const double hPadding = 40; // 20 leading + 20 trailing
+    const double vPadding = 24; // 12 top + 12 bottom
+    double width = tp.width + hPadding;
+    if (widget.leadingSymbol != null) width += iconWidth + iconSpacing;
+    if (widget.trailingSymbol != null) width += iconWidth + iconSpacing;
+    return Size(width.ceilToDouble(), (tp.height + vPadding).ceilToDouble());
+  }
+
   Map<String, dynamic> _params() {
     final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
     return <String, dynamic>{
@@ -113,11 +141,19 @@ class _LiquidGlassButtonState extends State<LiquidGlassButton> {
 
   Future<void> _applySize(Future<Map<String, dynamic>?> call) async {
     final Map<String, dynamic>? res = await call;
-    if (res != null && mounted) {
-      setState(() {
-        _size = Size((res['width'] as num).toDouble(), (res['height'] as num).toDouble());
-      });
+    if (res == null || !mounted) return;
+    final Size next =
+        Size((res['width'] as num).toDouble(), (res['height'] as num).toDouble());
+    // Skip the rebuild when the measured size is unchanged. A counter label like
+    // "Tapped 0 times" → "Tapped 1 times" keeps the same width, so re-running
+    // setState here would needlessly repaint the platform view (visible flash).
+    if (_size == next) return;
+    if (kDebugMode) {
+      _resizeCount++;
+      debugPrint('[GlassButton "${widget.label}"] resize #$_resizeCount '
+          '$_size -> $next');
     }
+    setState(() => _size = next);
   }
 
   @override
@@ -138,6 +174,11 @@ class _LiquidGlassButtonState extends State<LiquidGlassButton> {
 
   @override
   Widget build(BuildContext context) {
+    if (kDebugMode) {
+      _buildCount++;
+      debugPrint('[GlassButton "${widget.label}"] build #$_buildCount '
+          '(size=${_size == null ? "estimate" : "${_size!.width.toStringAsFixed(0)}x${_size!.height.toStringAsFixed(0)}"})');
+    }
     if (defaultTargetPlatform != TargetPlatform.iOS) {
       return FilledButton(
         onPressed: widget.onPressed,
@@ -145,20 +186,28 @@ class _LiquidGlassButtonState extends State<LiquidGlassButton> {
       );
     }
 
-    final Size size = _size ?? const Size(120, 48);
-    return SizedBox(
-      width: size.width,
-      height: size.height,
-      child: UiKitView(
-        viewType: _kButtonViewType,
-        creationParams: _params(),
-        creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: _onCreated,
-        // Tap claim so the down→up sequence reaches the native button and the
-        // interactive glass settles back after release.
-        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-          Factory<TapGestureRecognizer>(TapGestureRecognizer.new),
-        },
+    final Size size = _size ?? _estimatedSize();
+    // Stay invisible at the estimated size until Swift confirms the real size,
+    // then fade in. This hides the placeholder→measured correction entirely so
+    // there is no visible pop or resize when the page first appears.
+    return AnimatedOpacity(
+      opacity: _size == null ? 0.0 : 1.0,
+      duration: const Duration(milliseconds: 120),
+      curve: Curves.easeOut,
+      child: SizedBox(
+        width: size.width,
+        height: size.height,
+        child: UiKitView(
+          viewType: _kButtonViewType,
+          creationParams: _params(),
+          creationParamsCodec: const StandardMessageCodec(),
+          onPlatformViewCreated: _onCreated,
+          // Tap claim so the down→up sequence reaches the native button and the
+          // interactive glass settles back after release.
+          gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+            Factory<TapGestureRecognizer>(TapGestureRecognizer.new),
+          },
+        ),
       ),
     );
   }

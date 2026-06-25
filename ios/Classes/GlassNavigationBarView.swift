@@ -76,6 +76,7 @@ final class GlassNavigationBarModel: ObservableObject {
   @Published var title: String?
   @Published var leading: [NavBarActionItem] = []
   @Published var trailing: [NavBarActionItem] = []
+  @Published var topSafeArea: CGFloat = 0
   var onAction: ((String) -> Void)?
 
   init(args: [String: Any]) {
@@ -89,6 +90,9 @@ final class GlassNavigationBarModel: ObservableObject {
     }
     if let items = args["trailing"] as? [[String: Any]] {
       trailing = items.map { NavBarActionItem(id: $0["id"] as? String ?? "", sfSymbol: $0["sfSymbol"] as? String ?? "") }
+    }
+    if let top = args["topSafeArea"] as? Double {
+      topSafeArea = CGFloat(top)
     }
   }
 }
@@ -107,6 +111,7 @@ struct GlassNavigationBarRoot: View {
             Button(action: { model.onAction?(item.id) }) {
               Image(systemName: item.sfSymbol)
                 .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(.white)
                 .padding(.horizontal, 12)
             }
             .buttonStyle(.plain)
@@ -115,6 +120,7 @@ struct GlassNavigationBarRoot: View {
           if let title = model.title {
             Text(title)
               .font(.system(size: 17, weight: .semibold))
+              .foregroundStyle(.white)
               .lineLimit(1)
           }
           Spacer()
@@ -122,6 +128,7 @@ struct GlassNavigationBarRoot: View {
             Button(action: { model.onAction?(item.id) }) {
               Image(systemName: item.sfSymbol)
                 .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(.white)
                 .padding(.horizontal, 12)
             }
             .buttonStyle(.plain)
@@ -130,12 +137,14 @@ struct GlassNavigationBarRoot: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 8)
       }
+      .padding(.top, model.topSafeArea)
     } else {
       HStack(spacing: 0) {
         ForEach(model.leading, id: \.id) { item in
           Button(action: { model.onAction?(item.id) }) {
             Image(systemName: item.sfSymbol)
               .font(.system(size: 20, weight: .semibold))
+              .foregroundStyle(.white)
               .padding(.horizontal, 12)
           }
           .buttonStyle(.plain)
@@ -144,6 +153,7 @@ struct GlassNavigationBarRoot: View {
         if let title = model.title {
           Text(title)
             .font(.system(size: 17, weight: .semibold))
+            .foregroundStyle(.white)
             .lineLimit(1)
         }
         Spacer()
@@ -151,11 +161,13 @@ struct GlassNavigationBarRoot: View {
           Button(action: { model.onAction?(item.id) }) {
             Image(systemName: item.sfSymbol)
               .font(.system(size: 20, weight: .semibold))
+              .foregroundStyle(.white)
               .padding(.horizontal, 12)
           }
           .buttonStyle(.plain)
         }
       }
+      .padding(.top, model.topSafeArea)
       .padding(.horizontal, 8)
       .padding(.vertical, 8)
       .background(.ultraThinMaterial)

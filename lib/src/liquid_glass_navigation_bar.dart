@@ -40,7 +40,7 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar> {
           a.id: a.onPressed ?? () {},
       };
 
-  Map<String, dynamic> _params() => <String, dynamic>{
+  Map<String, dynamic> _params({double topSafeArea = 0}) => <String, dynamic>{
         'title': widget.title,
         'leading': widget.leading
             .map((a) => <String, dynamic>{'id': a.id, 'sfSymbol': a.sfSymbol})
@@ -50,6 +50,7 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar> {
             .toList(growable: false),
         'tint': (widget.tint ?? LiquidGlassTheme.of(context).tint)?.toARGB32(),
         'respectAccessibility': LiquidGlassTheme.of(context).respectAccessibility,
+        'topSafeArea': topSafeArea,
       };
 
   void _onCreated(int id) {
@@ -91,12 +92,13 @@ class _LiquidGlassNavigationBarState extends State<LiquidGlassNavigationBar> {
       );
     }
 
+    final double topPadding = MediaQuery.of(context).padding.top;
     return SizedBox(
       width: double.infinity,
-      height: 56,
+      height: 56 + topPadding,
       child: UiKitView(
         viewType: _kNavigationBarViewType,
-        creationParams: _params(),
+        creationParams: _params(topSafeArea: topPadding),
         creationParamsCodec: const StandardMessageCodec(),
         onPlatformViewCreated: _onCreated,
         gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{

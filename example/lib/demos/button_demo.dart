@@ -1,16 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:liquid_glass_native/liquid_glass_native.dart';
 
-class ButtonDemo extends StatefulWidget {
-  const ButtonDemo({super.key});
-  @override
-  State<ButtonDemo> createState() => _ButtonDemoState();
-}
+/// Debug-only: counts how many times each card has rebuilt, keyed by title.
+/// Lets us see whether a single tap rebuilds one card or the whole page.
+final Map<String, int> _cardBuildCounts = <String, int>{};
 
-class _ButtonDemoState extends State<ButtonDemo> {
-  int _count = 0;
-  int _likes = 0;
-  String _group = '';
+class ButtonDemo extends StatelessWidget {
+  const ButtonDemo({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -34,14 +31,10 @@ class _ButtonDemoState extends State<ButtonDemo> {
           ),
           const SizedBox(height: 20),
 
-          _ButtonCard(
-            title: 'Text',
-            subtitle: 'Basic text button with tap counter.',
-            child: LiquidGlassButton(
-              label: 'Tapped $_count times',
-              onPressed: () => setState(() => _count++),
-            ),
-          ),
+          // Stateful pieces are isolated into their own widgets so a tap only
+          // rebuilds that one card — not every glass platform view on the page,
+          // which would cause a full-page repaint flash.
+          const _CounterButtonCard(),
 
           _ButtonCard(
             title: 'Prefix Icon',
@@ -143,60 +136,110 @@ class _ButtonDemoState extends State<ButtonDemo> {
           ),
 
           // Icon buttons section
-          _ButtonCard(
-            title: 'Icon Buttons',
-            subtitle: 'liked $_likes times  ·  heart, star, trash',
-            child: Row(
-              children: [
-                LiquidGlassIconButton(
-                  sfSymbol: 'heart',
-                  onPressed: () => setState(() => _likes++),
-                  iconColor: Colors.white,
-                ),
-                const SizedBox(width: 16),
-                LiquidGlassIconButton(
-                  sfSymbol: 'star.fill',
-                  onPressed: () {},
-                  tint: Colors.amber,
-                  iconColor: Colors.white,
-                ),
-                const SizedBox(width: 16),
-                LiquidGlassIconButton(
-                  sfSymbol: 'trash',
-                  onPressed: () {},
-                  tint: Colors.red,
-                  iconColor: Colors.white,
-                  size: 52,
-                  iconSize: 24,
-                ),
-              ],
-            ),
-          ),
+          const _IconButtonsCard(),
 
           // Button group section
-          _ButtonCard(
-            title: 'Button Group',
-            subtitle: _group.isEmpty
-                ? 'Tap a group button'
-                : 'Selected: $_group',
-            child: LiquidGlassButtonGroup(
-              spacing: 12,
-              buttons: [
-                GroupButton(
-                    id: 'heart',
-                    sfSymbol: 'heart',
-                    onPressed: () => setState(() => _group = 'heart')),
-                GroupButton(
-                    id: 'star',
-                    sfSymbol: 'star',
-                    onPressed: () => setState(() => _group = 'star')),
-                GroupButton(
-                    id: 'bell',
-                    sfSymbol: 'bell',
-                    onPressed: () => setState(() => _group = 'bell')),
-              ],
-            ),
+          const _ButtonGroupCard(),
+        ],
+      ),
+    );
+  }
+}
+
+class _CounterButtonCard extends StatefulWidget {
+  const _CounterButtonCard();
+  @override
+  State<_CounterButtonCard> createState() => _CounterButtonCardState();
+}
+
+class _CounterButtonCardState extends State<_CounterButtonCard> {
+  int _count = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return _ButtonCard(
+      title: 'Text',
+      subtitle: 'Basic text button with tap counter.',
+      child: LiquidGlassButton(
+        label: 'Tapped $_count times',
+        onPressed: () => setState(() => _count++),
+      ),
+    );
+  }
+}
+
+class _IconButtonsCard extends StatefulWidget {
+  const _IconButtonsCard();
+  @override
+  State<_IconButtonsCard> createState() => _IconButtonsCardState();
+}
+
+class _IconButtonsCardState extends State<_IconButtonsCard> {
+  int _likes = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return _ButtonCard(
+      title: 'Icon Buttons',
+      subtitle: 'liked $_likes times  ·  heart, star, trash',
+      child: Row(
+        children: [
+          LiquidGlassIconButton(
+            sfSymbol: 'heart',
+            onPressed: () => setState(() => _likes++),
+            iconColor: Colors.white,
           ),
+          const SizedBox(width: 16),
+          LiquidGlassIconButton(
+            sfSymbol: 'star.fill',
+            onPressed: () {},
+            tint: Colors.amber,
+            iconColor: Colors.white,
+          ),
+          const SizedBox(width: 16),
+          LiquidGlassIconButton(
+            sfSymbol: 'trash',
+            onPressed: () {},
+            tint: Colors.red,
+            iconColor: Colors.white,
+            size: 52,
+            iconSize: 24,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ButtonGroupCard extends StatefulWidget {
+  const _ButtonGroupCard();
+  @override
+  State<_ButtonGroupCard> createState() => _ButtonGroupCardState();
+}
+
+class _ButtonGroupCardState extends State<_ButtonGroupCard> {
+  String _group = '';
+
+  @override
+  Widget build(BuildContext context) {
+    return _ButtonCard(
+      title: 'Button Group',
+      subtitle: _group.isEmpty ? 'Tap a group button' : 'Selected: $_group',
+      child: LiquidGlassButtonGroup(
+        spacing: 12,
+        buttons: [
+          GroupButton(
+              id: 'heart',
+              sfSymbol: 'heart',
+              onPressed: () => setState(() => _group = 'heart')),
+          GroupButton(
+              id: 'star',
+              sfSymbol: 'star',
+              onPressed: () => setState(() => _group = 'star')),
+          GroupButton(
+              id: 'bell',
+              sfSymbol: 'bell',
+              onPressed: () => setState(() => _group = 'bell')),
         ],
       ),
     );
@@ -216,13 +259,36 @@ class _ButtonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (kDebugMode) {
+      final int n = (_cardBuildCounts[title] ?? 0) + 1;
+      _cardBuildCounts[title] = n;
+      debugPrint('[Card "$title"] build #$n');
+    }
+    const Color tint = Color(0xFF6C63FF);
+    final BorderRadius radius = BorderRadius.circular(16);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
+      // Static translucent glass for the card chrome — NO BackdropFilter.
+      // A live backdrop blur re-samples whatever is behind it on every relayout;
+      // while the native buttons measure themselves and resize on first open,
+      // that re-sampling makes the card background flicker and the button glass
+      // shift color. A fixed gradient never re-samples, so it stays rock-stable.
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: LiquidGlassContainer(
-          tint: const Color(0xFF6C63FF),
-          borderRadius: 16,
+        borderRadius: radius,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: radius,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withValues(alpha: 0.14),
+                tint.withValues(alpha: 0.16),
+                Colors.white.withValues(alpha: 0.05),
+              ],
+            ),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(

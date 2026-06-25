@@ -64,7 +64,20 @@ final class GlassButtonPlatformView: NSObject, FlutterPlatformView {
   }
 
   private func intrinsicSize() -> [String: Double] {
-    guard let view = host?.view else { return ["width": 120, "height": 48] }
+    guard let host = host else { return ["width": 120, "height": 48] }
+    // Measure with the hosting controller's own sizing, which respects SwiftUI's
+    // *ideal* (un-truncated) size. `systemLayoutSizeFitting(.compressedSize)` asks
+    // for the smallest size and lets SwiftUI truncate Text to zero width, which is
+    // why labels vanished while fixed-size icons stayed visible.
+    let unbounded = CGSize(
+      width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+    if #available(iOS 16.0, *),
+      let hosting = host as? UIHostingController<GlassButtonRoot>
+    {
+      let size = hosting.sizeThatFits(in: unbounded)
+      return ["width": Double(ceil(size.width)), "height": Double(ceil(size.height))]
+    }
+    let view = host.view!
     view.setNeedsLayout()
     view.layoutIfNeeded()
     let size = view.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
