@@ -1,27 +1,27 @@
 PODS:
   - Flutter (1.0.0)
-  - flutter_native_view (0.0.1):
-    - Flutter
   - integration_test (0.0.1):
+    - Flutter
+  - liquid_glass_native (0.0.1):
     - Flutter
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
-  - flutter_native_view (from `.symlinks/plugins/flutter_native_view/ios`)
   - integration_test (from `.symlinks/plugins/integration_test/ios`)
+  - liquid_glass_native (from `.symlinks/plugins/liquid_glass_native/ios`)
 
 EXTERNAL SOURCES:
   Flutter:
     :path: Flutter
-  flutter_native_view:
-    :path: ".symlinks/plugins/flutter_native_view/ios"
   integration_test:
     :path: ".symlinks/plugins/integration_test/ios"
+  liquid_glass_native:
+    :path: ".symlinks/plugins/liquid_glass_native/ios"
 
 SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_native_view: 918beb8703a3728dc234f00451d745740dd6b9cd
   integration_test: 4a889634ef21a45d28d50d622cf412dc6d9f586e
+  liquid_glass_native: ee1cea2e4ef22e4102632b6826fb05d82188a44a
 
 PODFILE CHECKSUM: e30f02f9d1c72c47bb6344a0a748c9d268180865
 

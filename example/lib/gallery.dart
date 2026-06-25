@@ -16,6 +16,7 @@ import 'demos/stepper_demo.dart';
 import 'demos/switch_demo.dart';
 import 'demos/tab_bar_demo.dart';
 import 'demos/text_field_demo.dart';
+import 'demos/theme_demo.dart';
 import 'demos/toolbar_demo.dart';
 
 typedef DemoBuilder = Widget Function();
@@ -43,6 +44,7 @@ final List<DemoEntry> demos = <DemoEntry>[
   DemoEntry('Switch', () => const SwitchDemo()),
   DemoEntry('TabBar', () => buildTabBarDemo()),
   DemoEntry('TextField', () => buildTextFieldDemo()),
+  DemoEntry('Theme & A11y', () => buildThemeDemo()),
   DemoEntry('Toolbar', () => buildToolbarDemo()),
 ];
 

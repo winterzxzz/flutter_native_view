@@ -81,6 +81,7 @@ final class GlassIconButtonModel: ObservableObject {
   @Published var size: CGFloat
   @Published var iconSize: CGFloat
   @Published var tint: UIColor?
+  @Published var iconColor: UIColor?
   @Published var cornerRadius: CGFloat?
   @Published var interactive: Bool
   @Published var respectAccessibility: Bool
@@ -91,6 +92,7 @@ final class GlassIconButtonModel: ObservableObject {
     size = (args["size"] as? Double).map { CGFloat($0) } ?? 44
     iconSize = (args["iconSize"] as? Double).map { CGFloat($0) } ?? 20
     tint = GlassColor.fromARGB(args["tint"] as? Int)
+    iconColor = GlassColor.fromARGB(args["iconColor"] as? Int)
     cornerRadius = (args["cornerRadius"] as? Double).map { CGFloat($0) }
     interactive = args["interactive"] as? Bool ?? true
     respectAccessibility = args["respectAccessibility"] as? Bool ?? true
@@ -101,6 +103,7 @@ final class GlassIconButtonModel: ObservableObject {
     size = (args["size"] as? Double).map { CGFloat($0) } ?? size
     iconSize = (args["iconSize"] as? Double).map { CGFloat($0) } ?? iconSize
     tint = GlassColor.fromARGB(args["tint"] as? Int)
+    iconColor = GlassColor.fromARGB(args["iconColor"] as? Int)
     cornerRadius = (args["cornerRadius"] as? Double).map { CGFloat($0) }
     interactive = args["interactive"] as? Bool ?? interactive
     respectAccessibility = args["respectAccessibility"] as? Bool ?? respectAccessibility
@@ -122,7 +125,11 @@ struct GlassIconButtonRoot: View {
   private var icon: some View {
     Image(systemName: model.sfSymbol)
       .font(.system(size: model.iconSize, weight: .semibold))
-      .foregroundStyle(model.tint.map { Color(uiColor: $0) } ?? .primary)
+      .foregroundStyle(
+        model.iconColor.map { Color(uiColor: $0) }
+        ?? model.tint.map { Color(uiColor: $0) }
+        ?? .primary
+      )
       .frame(width: model.size, height: model.size)
   }
 
