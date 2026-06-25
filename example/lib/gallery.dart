@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'demos/activity_indicator_demo.dart';
 import 'demos/button_demo.dart';
+import 'demos/card_demo.dart';
 import 'demos/color_picker_demo.dart';
 import 'demos/container_demo.dart';
 import 'demos/date_picker_demo.dart';
@@ -27,6 +28,7 @@ class DemoEntry {
 final List<DemoEntry> demos = <DemoEntry>[
   DemoEntry('ActivityIndicator', () => buildActivityIndicatorDemo()),
   DemoEntry('Buttons', () => const ButtonDemo()),
+  DemoEntry('Card', () => buildCardDemo()),
   DemoEntry('ColorPicker', () => buildColorPickerDemo()),
   DemoEntry('Container', () => buildContainerDemo()),
   DemoEntry('DatePicker', () => buildDatePickerDemo()),
