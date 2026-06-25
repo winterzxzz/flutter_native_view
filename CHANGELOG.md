@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.2
+
+- Add `example/example.md` with curated usage snippets so the pub.dev Example
+  tab shows real widget usage instead of app boilerplate.
+
 ## 0.0.1
 
 - Initial release of `liquid_glass_native`.
