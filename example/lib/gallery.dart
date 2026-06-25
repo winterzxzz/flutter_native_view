@@ -15,6 +15,7 @@ import 'demos/slider_demo.dart';
 import 'demos/stepper_demo.dart';
 import 'demos/switch_demo.dart';
 import 'demos/tab_bar_demo.dart';
+import 'demos/text_field_demo.dart';
 import 'demos/toolbar_demo.dart';
 
 typedef DemoBuilder = Widget Function();
@@ -41,6 +42,7 @@ final List<DemoEntry> demos = <DemoEntry>[
   DemoEntry('Stepper', () => buildStepperDemo()),
   DemoEntry('Switch', () => const SwitchDemo()),
   DemoEntry('TabBar', () => buildTabBarDemo()),
+  DemoEntry('TextField', () => buildTextFieldDemo()),
   DemoEntry('Toolbar', () => buildToolbarDemo()),
 ];
 

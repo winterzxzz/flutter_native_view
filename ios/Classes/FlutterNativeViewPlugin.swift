@@ -18,6 +18,7 @@ public class FlutterNativeViewPlugin: NSObject, FlutterPlugin {
   static let sliderViewType = "flutter_native_view/glass_slider"
   static let stepperViewType = "flutter_native_view/glass_stepper"
   static let tabBarViewType = "flutter_native_view/glass_tab_bar"
+  static let textFieldViewType = "flutter_native_view/glass_text_field"
   static let toggleViewType = "flutter_native_view/glass_toggle"
   static let toolbarViewType = "flutter_native_view/glass_toolbar"
 
@@ -62,6 +63,8 @@ public class FlutterNativeViewPlugin: NSObject, FlutterPlugin {
     registrar.register(
       GlassTabBarViewFactory(messenger: messenger, hostViewController: registrar.viewController),
       withId: tabBarViewType)
+    registrar.register(
+      GlassTextFieldViewFactory(messenger: messenger), withId: textFieldViewType)
     registrar.register(
       GlassToggleViewFactory(messenger: messenger), withId: toggleViewType)
     registrar.register(
