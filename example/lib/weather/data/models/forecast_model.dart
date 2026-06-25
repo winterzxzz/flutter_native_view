@@ -40,8 +40,8 @@ class ForecastModel {
       feelsLikeC: (json['apparent_temperature'] as num).toDouble(),
       humidity: (json['relative_humidity_2m'] as num).toDouble(),
       windKph: (json['wind_speed_10m'] as num).toDouble(),
-      weatherCode: json['weather_code'] as int,
-      isDay: json['is_day'] as int == 1,
+      weatherCode: (json['weather_code'] as num).toInt(),
+      isDay: (json['is_day'] as num).toInt() == 1,
     );
   }
 
@@ -62,7 +62,7 @@ class ForecastModel {
       forecasts.add(HourlyForecast(
         time: time,
         tempC: (temps[i] as num).toDouble(),
-        weatherCode: codes[i] as int,
+        weatherCode: (codes[i] as num).toInt(),
       ));
     }
 
@@ -79,7 +79,7 @@ class ForecastModel {
     for (var i = 0; i < dates.length; i++) {
       forecasts.add(DailyForecast(
         date: DateTime.parse(dates[i] as String),
-        weatherCode: codes[i] as int,
+        weatherCode: (codes[i] as num).toInt(),
         maxC: (maxTemps[i] as num).toDouble(),
         minC: (minTemps[i] as num).toDouble(),
       ));

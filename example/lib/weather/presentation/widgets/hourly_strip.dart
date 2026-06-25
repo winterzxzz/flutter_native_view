@@ -3,6 +3,7 @@ import 'package:liquid_glass_native/liquid_glass_native.dart';
 
 import '../../shared/weather_codes.dart';
 import '../../shared/formatters.dart';
+import '../../shared/icons.dart';
 import '../../domain/entities/hourly_forecast.dart';
 
 class HourlyStrip extends StatelessWidget {
@@ -44,7 +45,7 @@ class HourlyStrip extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Icon(
-                    _iconFromSfSymbol(visual.sfSymbol),
+                    iconForSfSymbol(visual.sfSymbol),
                     color: Colors.white,
                     size: 22,
                   ),
@@ -64,32 +65,5 @@ class HourlyStrip extends StatelessWidget {
         },
       ),
     );
-  }
-}
-
-IconData _iconFromSfSymbol(String sfSymbol) {
-  switch (sfSymbol) {
-    case 'sun.max':
-      return Icons.wb_sunny;
-    case 'moon.stars':
-      return Icons.nights_stay;
-    case 'cloud':
-      return Icons.cloud;
-    case 'cloud.moon':
-      return Icons.cloud;
-    case 'cloud.fog':
-      return Icons.foggy;
-    case 'cloud.drizzle':
-      return Icons.grain;
-    case 'cloud.rain':
-      return Icons.umbrella;
-    case 'cloud.heavyrain':
-      return Icons.thunderstorm;
-    case 'cloud.snow':
-      return Icons.ac_unit;
-    case 'cloud.bolt.rain':
-      return Icons.flash_on;
-    default:
-      return Icons.wb_sunny;
   }
 }
