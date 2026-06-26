@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0
+
+- Refactor: shared `GlassPlatformView` base class — fixes lifecycle bugs and
+  reduces per-widget boilerplate.
+- New: `brightness` property on `LiquidGlassTabBar` to control native interface
+  style (light/dark).
+- Fix: theme-aware brightness on `LiquidGlassSegmentedControl`; invisible
+  spinner on dark backgrounds is resolved.
+
 ## 0.1.0
 
 - Add `LiquidGlassTheme` / `LiquidGlassThemeData` for app-wide glass defaults

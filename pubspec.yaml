@@ -1,6 +1,6 @@
 name: liquid_glass_native
 description: "Native Apple Liquid Glass UI for Flutter on iOS 26+ — real SwiftUI/UIKit glass widgets (buttons, tab bar, sheets, pickers), not a blur fake. Graceful fallback below iOS 26."
-version: 0.1.0
+version: 0.2.0
 homepage: https://github.com/winterzxzz/flutter_native_view
 repository: https://github.com/winterzxzz/flutter_native_view
 issue_tracker: https://github.com/winterzxzz/flutter_native_view/issues
