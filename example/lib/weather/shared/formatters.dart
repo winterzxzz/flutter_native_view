@@ -31,7 +31,13 @@ String formatHour(DateTime time) {
 }
 
 final List<String> _dayNames = [
-  'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun',
+  'Mon',
+  'Tue',
+  'Wed',
+  'Thu',
+  'Fri',
+  'Sat',
+  'Sun',
 ];
 
 /// Formats a [DateTime] to a short day label like "Mon".

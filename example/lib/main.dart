@@ -10,9 +10,9 @@ class DemoApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(useMaterial3: true).copyWith(
-        scaffoldBackgroundColor: const Color(0xFF0E0E16),
-      ),
+      theme: ThemeData.dark(
+        useMaterial3: true,
+      ).copyWith(scaffoldBackgroundColor: const Color(0xFF0E0E16)),
       home: const Gallery(),
     );
   }

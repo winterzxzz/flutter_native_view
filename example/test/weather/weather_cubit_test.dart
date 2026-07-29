@@ -64,10 +64,12 @@ void main() {
     blocTest<WeatherCubit, WeatherState>(
       'emits [WeatherLoading, WeatherLoaded] on successful search + forecast',
       setUp: () {
-        when(() => repository.search('London'))
-            .thenAnswer((_) async => Right(testLocation));
-        when(() => repository.getForecast(testLocation))
-            .thenAnswer((_) async => Right(_testBundle(testLocation)));
+        when(
+          () => repository.search('London'),
+        ).thenAnswer((_) async => Right(testLocation));
+        when(
+          () => repository.getForecast(testLocation),
+        ).thenAnswer((_) async => Right(_testBundle(testLocation)));
       },
       build: () => WeatherCubit(repository),
       act: (cubit) => cubit.search('London'),
@@ -80,8 +82,9 @@ void main() {
     blocTest<WeatherCubit, WeatherState>(
       'emits [WeatherLoading, WeatherError] when search fails with NotFound',
       setUp: () {
-        when(() => repository.search(any()))
-            .thenAnswer((_) async => Left(NotFoundFailure()));
+        when(
+          () => repository.search(any()),
+        ).thenAnswer((_) async => Left(NotFoundFailure()));
       },
       build: () => WeatherCubit(repository),
       act: (cubit) => cubit.search('Atlantis'),
@@ -94,8 +97,9 @@ void main() {
     blocTest<WeatherCubit, WeatherState>(
       'emits [WeatherLoading, WeatherError] when network fails',
       setUp: () {
-        when(() => repository.search(any()))
-            .thenAnswer((_) async => Left(NetworkFailure()));
+        when(
+          () => repository.search(any()),
+        ).thenAnswer((_) async => Left(NetworkFailure()));
       },
       build: () => WeatherCubit(repository),
       act: (cubit) => cubit.search('London'),
@@ -108,10 +112,12 @@ void main() {
     blocTest<WeatherCubit, WeatherState>(
       'emits [WeatherLoading, WeatherError] when forecast fails after search succeeds',
       setUp: () {
-        when(() => repository.search('Paris'))
-            .thenAnswer((_) async => Right(testLocation));
-        when(() => repository.getForecast(testLocation))
-            .thenAnswer((_) async => Left(UnknownFailure()));
+        when(
+          () => repository.search('Paris'),
+        ).thenAnswer((_) async => Right(testLocation));
+        when(
+          () => repository.getForecast(testLocation),
+        ).thenAnswer((_) async => Left(UnknownFailure()));
       },
       build: () => WeatherCubit(repository),
       act: (cubit) => cubit.search('Paris'),
@@ -124,10 +130,12 @@ void main() {
     blocTest<WeatherCubit, WeatherState>(
       'retry re-runs the last query',
       setUp: () {
-        when(() => repository.search('London'))
-            .thenAnswer((_) async => Right(testLocation));
-        when(() => repository.getForecast(testLocation))
-            .thenAnswer((_) async => Right(_testBundle(testLocation)));
+        when(
+          () => repository.search('London'),
+        ).thenAnswer((_) async => Right(testLocation));
+        when(
+          () => repository.getForecast(testLocation),
+        ).thenAnswer((_) async => Right(_testBundle(testLocation)));
       },
       build: () => WeatherCubit(repository),
       act: (cubit) async {
@@ -152,17 +160,20 @@ void main() {
     blocTest<WeatherCubit, WeatherState>(
       'retry after error re-attempts the query',
       setUp: () {
-        when(() => repository.search('London'))
-            .thenAnswer((_) async => Left(NetworkFailure()));
-        when(() => repository.getForecast(testLocation))
-            .thenAnswer((_) async => Right(_testBundle(testLocation)));
+        when(
+          () => repository.search('London'),
+        ).thenAnswer((_) async => Left(NetworkFailure()));
+        when(
+          () => repository.getForecast(testLocation),
+        ).thenAnswer((_) async => Right(_testBundle(testLocation)));
       },
       build: () => WeatherCubit(repository),
       act: (cubit) async {
         await cubit.search('London');
         // Second call succeeds
-        when(() => repository.search('London'))
-            .thenAnswer((_) async => Right(testLocation));
+        when(
+          () => repository.search('London'),
+        ).thenAnswer((_) async => Right(testLocation));
         await cubit.retry();
       },
       expect: () => [

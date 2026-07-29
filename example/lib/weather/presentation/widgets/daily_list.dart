@@ -6,11 +6,7 @@ import '../../shared/icons.dart';
 import '../../domain/entities/daily_forecast.dart';
 
 class DailyList extends StatelessWidget {
-  const DailyList({
-    super.key,
-    required this.daily,
-    required this.unit,
-  });
+  const DailyList({super.key, required this.daily, required this.unit});
 
   final List<DailyForecast> daily;
   final TempUnit unit;
@@ -26,7 +22,10 @@ class DailyList extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 8),
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(16),

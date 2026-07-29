@@ -23,17 +23,17 @@ class CurrentConditionsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final WeatherVisual visual =
-        weatherVisualFromCode(weather.weatherCode, weather.isDay);
+    final WeatherVisual visual = weatherVisualFromCode(
+      weather.weatherCode,
+      weather.isDay,
+    );
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.15),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -79,11 +79,20 @@ class CurrentConditionsCard extends StatelessWidget {
               style: const TextStyle(color: Colors.white60, fontSize: 13),
               child: Row(
                 children: [
-                  _Metric(label: 'Feels like', value: formatTemp(weather.feelsLikeC, unit)),
+                  _Metric(
+                    label: 'Feels like',
+                    value: formatTemp(weather.feelsLikeC, unit),
+                  ),
                   const SizedBox(width: 16),
-                  _Metric(label: 'Humidity', value: '${weather.humidity.toInt()}%'),
+                  _Metric(
+                    label: 'Humidity',
+                    value: '${weather.humidity.toInt()}%',
+                  ),
                   const SizedBox(width: 16),
-                  _Metric(label: 'Wind', value: '${weather.windKph.toInt()} km/h'),
+                  _Metric(
+                    label: 'Wind',
+                    value: '${weather.windKph.toInt()} km/h',
+                  ),
                 ],
               ),
             ),
@@ -105,9 +114,15 @@ class _Metric extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Colors.white38, fontSize: 11)),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white38, fontSize: 11),
+        ),
         const SizedBox(height: 2),
-        Text(value, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+        Text(
+          value,
+          style: const TextStyle(color: Colors.white70, fontSize: 14),
+        ),
       ],
     );
   }

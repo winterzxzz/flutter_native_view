@@ -21,7 +21,13 @@ class HomeTab extends StatefulWidget {
 }
 
 class _HomeTabState extends State<HomeTab> {
-  String _query = '';
+  late final TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+  }
 
   void _submit(String value) {
     final trimmed = value.trim();
@@ -38,9 +44,8 @@ class _HomeTabState extends State<HomeTab> {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: LiquidGlassSearchBar(
-            text: _query,
-            onChanged: (value) => setState(() => _query = value),
+          child: LiquidGlassTextField.search(
+            controller: _searchController,
             onSubmitted: _submit,
             placeholder: 'Search a city...',
           ),
@@ -51,46 +56,52 @@ class _HomeTabState extends State<HomeTab> {
             builder: (context, state) {
               return switch (state) {
                 WeatherInitial() => const WeatherStatusView(
-                    type: WeatherStatusType.empty,
-                  ),
+                  type: WeatherStatusType.empty,
+                ),
                 WeatherLoading() => const WeatherStatusView(
-                    type: WeatherStatusType.loading,
-                  ),
+                  type: WeatherStatusType.loading,
+                ),
                 WeatherError(:final message) => WeatherStatusView(
-                    type: WeatherStatusType.error,
-                    message: message,
-                    onRetry: context.read<WeatherCubit>().retry,
-                  ),
+                  type: WeatherStatusType.error,
+                  message: message,
+                  onRetry: context.read<WeatherCubit>().retry,
+                ),
                 WeatherLoaded(:final bundle) => SingleChildScrollView(
-                    padding: const EdgeInsets.only(bottom: 120),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                          child: CurrentConditionsCard(
-                            weather: bundle.current,
-                            location: bundle.location,
-                            unit: unit,
-                          ),
+                  padding: const EdgeInsets.only(bottom: 120),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                        child: CurrentConditionsCard(
+                          weather: bundle.current,
+                          location: bundle.location,
+                          unit: unit,
                         ),
-                        const SizedBox(height: 24),
-                        const _SectionLabel('Hourly'),
-                        const SizedBox(height: 8),
-                        HourlyStrip(hourly: bundle.hourly, unit: unit),
-                        const SizedBox(height: 24),
-                        const _SectionLabel('7-Day'),
-                        const SizedBox(height: 8),
-                        DailyList(daily: bundle.daily, unit: unit),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 24),
+                      const _SectionLabel('Hourly'),
+                      const SizedBox(height: 8),
+                      HourlyStrip(hourly: bundle.hourly, unit: unit),
+                      const SizedBox(height: 24),
+                      const _SectionLabel('7-Day'),
+                      const SizedBox(height: 8),
+                      DailyList(daily: bundle.daily, unit: unit),
+                    ],
                   ),
+                ),
               };
             },
           ),
         ),
       ],
     );
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 }
 

@@ -1,14 +1,14 @@
 # Product Docs
 
-This directory is intentionally generic and mostly empty in Harness v0.
+The selected product contract is `liquid-glass-v1.md`.
 
 When a user provides a project spec, derive smaller product contract files here
 instead of keeping one large spec as the living plan. Name files by the product
 domains that actually exist in that spec, for example `overview.md`,
 `billing.md`, `workflows.md`, `permissions.md`, or `api-conventions.md`.
 
-Do not create domain files before the spec just to fill the folder. Empty
-structure is healthier than fake product truth.
+Add another domain file only when a selected story introduces a distinct,
+durable product contract.
 
 ## Update Rule
 

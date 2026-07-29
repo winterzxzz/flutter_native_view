@@ -8,7 +8,9 @@ class ConditionBackdrop extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final disableAnimations = MediaQuery.of(context).disableAnimations;
-    final duration = disableAnimations ? Duration.zero : const Duration(milliseconds: 300);
+    final duration = disableAnimations
+        ? Duration.zero
+        : const Duration(milliseconds: 300);
 
     return Positioned.fill(
       child: AnimatedSwitcher(

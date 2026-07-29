@@ -1,320 +1,428 @@
 import 'package:flutter/material.dart';
-import 'package:liquid_glass_native/liquid_glass_native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:liquid_glass_native/liquid_glass_native.dart';
 
-// On the test host (non-iOS) the widgets render their Material fallbacks, which
-// is what these tests exercise. The native glass path is verified on an iOS 26
-// simulator.
 void main() {
-  testWidgets('LiquidGlassButton fallback fires onPressed',
-      (WidgetTester tester) async {
-    int taps = 0;
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Center(
-          child: LiquidGlassButton(
-            label: 'Tap',
-            onPressed: () => taps++,
+  Widget app(Widget child, {LiquidGlassThemeData? theme}) {
+    return MaterialApp(
+      home: LiquidGlassTheme(
+        data: theme ?? const LiquidGlassThemeData(),
+        child: Scaffold(body: Center(child: child)),
+      ),
+    );
+  }
+
+  group('public value objects', () {
+    test('style and control style have structural value semantics', () {
+      const LiquidGlassStyle first = LiquidGlassStyle(
+        tint: Colors.blue,
+        shape: LiquidGlassShape.roundedRectangle(cornerRadius: 18),
+      );
+      const LiquidGlassStyle second = LiquidGlassStyle(
+        tint: Colors.blue,
+        shape: LiquidGlassShape.roundedRectangle(cornerRadius: 18),
+      );
+
+      expect(first, second);
+      expect(first.copyWith(interactive: false).interactive, isFalse);
+      expect(first.withoutTint().tint, isNull);
+      const LiquidGlassControlStyle control = LiquidGlassControlStyle(
+        tintColor: Colors.orange,
+        foregroundColor: Colors.white,
+        brightness: Brightness.dark,
+        size: LiquidGlassControlSize.large,
+      );
+      expect(control, control.copyWith());
+      expect(control.copyWith(clearTintColor: true).tintColor, isNull);
+      expect(
+        control.copyWith(clearForegroundColor: true).foregroundColor,
+        isNull,
+      );
+      expect(control.copyWith(clearBrightness: true).brightness, isNull);
+    });
+
+    test('invalid scalar contracts fail early', () {
+      expect(
+        () => LiquidGlassSlider(value: 2, min: 0, max: 1, onChanged: (_) {}),
+        throwsAssertionError,
+      );
+      expect(
+        () => LiquidGlassStepper(value: 0, step: 0, onChanged: (_) {}),
+        throwsAssertionError,
+      );
+      expect(
+        () => LiquidGlassDatePicker(
+          value: DateTime(2026),
+          minimumDate: DateTime(2027),
+          onChanged: (_) {},
+        ),
+        throwsAssertionError,
+      );
+      expect(
+        () => LiquidGlassDatePicker(value: DateTime(10000), onChanged: (_) {}),
+        throwsAssertionError,
+      );
+    });
+  });
+
+  group('fallback controls', () {
+    testWidgets('button variants and icon fallback invoke callbacks', (
+      WidgetTester tester,
+    ) async {
+      var presses = 0;
+      await tester.pumpWidget(
+        app(
+          Wrap(
+            children: <Widget>[
+              LiquidGlassButton(label: 'Standard', onPressed: () => presses++),
+              LiquidGlassButton.prominent(
+                label: 'Prominent',
+                onPressed: () => presses++,
+              ),
+              LiquidGlassButton.icon(
+                symbol: const LiquidGlassSymbol(
+                  'heart.fill',
+                  fallbackIcon: Icons.favorite,
+                ),
+                semanticLabel: 'Favorite',
+                onPressed: () => presses++,
+              ),
+            ],
           ),
         ),
-      ),
-    );
-    expect(find.text('Tap'), findsOneWidget);
-    await tester.tap(find.byType(LiquidGlassButton));
-    expect(taps, 1);
-  });
+      );
 
-  testWidgets('LiquidGlassButton.heading builds', (WidgetTester tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Center(
-          child: LiquidGlassButton.heading(label: 'Hi', onPressed: () {}),
-        ),
-      ),
-    );
-    expect(find.text('Hi'), findsOneWidget);
-  });
+      await tester.tap(find.text('Standard'));
+      await tester.tap(find.text('Prominent'));
+      await tester.tap(find.byIcon(Icons.favorite));
+      expect(presses, 3);
+    });
 
-  testWidgets('LiquidGlassIconButton fallback fires onPressed',
-      (WidgetTester tester) async {
-    int taps = 0;
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Center(
-          child: LiquidGlassIconButton(
-            sfSymbol: 'heart',
-            onPressed: () => taps++,
+    testWidgets('button group routes the selected item', (
+      WidgetTester tester,
+    ) async {
+      String? selected;
+      await tester.pumpWidget(
+        app(
+          LiquidGlassButtonGroup(
+            items: <LiquidGlassButtonItem>[
+              LiquidGlassButtonItem(
+                id: 'one',
+                label: 'One',
+                onPressed: () => selected = 'one',
+              ),
+              LiquidGlassButtonItem(
+                id: 'two',
+                label: 'Two',
+                onPressed: () => selected = 'two',
+              ),
+            ],
           ),
         ),
-      ),
-    );
-    await tester.tap(find.byType(LiquidGlassIconButton));
-    expect(taps, 1);
-  });
+      );
 
-  testWidgets('LiquidGlassSheet fallback does not crash', (WidgetTester tester) async {
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: const Text('x'))));
-    // Pump again to settle, then verify no crash from just importing.
-    await tester.pump();
-    expect(find.text('x'), findsOneWidget);
-  });
+      await tester.tap(find.text('Two'));
+      expect(selected, 'two');
+    });
 
-  testWidgets('LiquidGlassPresenter non-iOS does not crash', (WidgetTester tester) async {
-    await LiquidGlassPresenter.presentSheet(title: 'Test');
-    await LiquidGlassPresenter.presentAlert(title: 'Test', message: 'Hi');
-    await LiquidGlassPresenter.presentPopover(title: 'Test');
-    // No crash means success — on non-iOS these are no-ops.
-  });
+    testWidgets('controlled switch and checkbox report values', (
+      WidgetTester tester,
+    ) async {
+      var switchValue = false;
+      var checkboxValue = false;
+      await tester.pumpWidget(
+        app(
+          StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              return Row(
+                children: <Widget>[
+                  LiquidGlassSwitch(
+                    value: switchValue,
+                    onChanged: (bool value) {
+                      setState(() => switchValue = value);
+                    },
+                  ),
+                  LiquidGlassCheckbox(
+                    value: checkboxValue,
+                    onChanged: (bool value) {
+                      setState(() => checkboxValue = value);
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      );
 
-  testWidgets('LiquidGlassMenu fallback renders', (WidgetTester tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: LiquidGlassMenu(
-              label: 'Menu',
-              items: const [MenuItem(id: 'a', title: 'A')],
-              onSelected: (_) {},
+      await tester.tap(find.byType(Switch));
+      await tester.tap(find.byType(Checkbox));
+      await tester.pump();
+      expect(switchValue, isTrue);
+      expect(checkboxValue, isTrue);
+    });
+
+    testWidgets('switch fallback applies semantic control size', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        app(
+          const LiquidGlassSwitch(
+            value: false,
+            onChanged: null,
+            controlStyle: LiquidGlassControlStyle(
+              size: LiquidGlassControlSize.compact,
             ),
           ),
         ),
-      ),
-    );
-    expect(find.byType(LiquidGlassMenu), findsOneWidget);
-  });
+      );
+      final Size compact = tester.getSize(find.byType(FittedBox));
 
-  testWidgets('LiquidGlassSearchBar fallback renders', (WidgetTester tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: LiquidGlassSearchBar(
-              text: 'hello',
+      await tester.pumpWidget(
+        app(
+          const LiquidGlassSwitch(
+            value: false,
+            onChanged: null,
+            controlStyle: LiquidGlassControlStyle(
+              size: LiquidGlassControlSize.large,
+            ),
+          ),
+        ),
+      );
+      final Size large = tester.getSize(find.byType(FittedBox));
+
+      expect(large.width, greaterThan(compact.width));
+      expect(large.height, greaterThan(compact.height));
+    });
+
+    testWidgets(
+      'fallback control style applies brightness and disabled opacity',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          app(
+            const LiquidGlassSwitch(
+              value: false,
+              onChanged: null,
+              controlStyle: LiquidGlassControlStyle(
+                brightness: Brightness.dark,
+                disabledOpacity: 0.2,
+              ),
+            ),
+          ),
+        );
+
+        expect(
+          tester
+              .widgetList<Theme>(find.byType(Theme))
+              .any((Theme theme) => theme.data.brightness == Brightness.dark),
+          isTrue,
+        );
+        expect(
+          find.byWidgetPredicate(
+            (Widget widget) => widget is Opacity && widget.opacity == 0.2,
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets('stepper fallback clamps non-divisible boundary steps', (
+      WidgetTester tester,
+    ) async {
+      int? next;
+      await tester.pumpWidget(
+        app(
+          LiquidGlassStepper(
+            value: 9,
+            step: 2,
+            min: 0,
+            max: 10,
+            onChanged: (int value) => next = value,
+          ),
+        ),
+      );
+
+      await tester.tap(find.byIcon(Icons.add));
+      expect(next, 10);
+    });
+
+    for (final int year in <int>[1800, 2300]) {
+      testWidgets('date fallback opens around an unbounded $year value', (
+        WidgetTester tester,
+      ) async {
+        await tester.pumpWidget(
+          app(
+            LiquidGlassDatePicker(
+              value: DateTime(year, 6, 15),
               onChanged: (_) {},
-              placeholder: 'Search',
             ),
           ),
-        ),
-      ),
-    );
-    expect(find.byType(LiquidGlassSearchBar), findsOneWidget);
-  });
+        );
 
-  testWidgets('LiquidGlassSegmentedControl fallback selection',
-      (WidgetTester tester) async {
-    int index = 0;
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Center(
-          child: LiquidGlassSegmentedControl(
-            segments: const ['A', 'B', 'C'],
-            selectedIndex: index,
-            onChanged: (int i) => index = i,
-          ),
-        ),
-      ),
-    );
-    expect(find.text('A'), findsOneWidget);
-  });
+        await tester.tap(find.byType(FilledButton));
+        await tester.pumpAndSettle();
+        expect(find.byType(DatePickerDialog), findsOneWidget);
+      });
+    }
 
-  testWidgets('LiquidGlassContainer fallback renders', (WidgetTester tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: Center(
-          child: SizedBox(
-            width: 200,
-            height: 200,
-            child: LiquidGlassContainer(),
-          ),
-        ),
-      ),
-    );
-    expect(find.byType(LiquidGlassContainer), findsOneWidget);
-  });
-
-  testWidgets('LiquidGlassActivityIndicator fallback renders',
-      (WidgetTester tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: Center(
-          child: LiquidGlassActivityIndicator(size: 48),
-        ),
-      ),
-    );
-    expect(find.byType(LiquidGlassActivityIndicator), findsOneWidget);
-  });
-
-  testWidgets('LiquidGlassSlider fallback value changes', (WidgetTester tester) async {
-    double value = 0.3;
-    await tester.pumpWidget(
-      StatefulBuilder(
-        builder: (BuildContext context, StateSetter setState) {
-          return MaterialApp(
-            home: Scaffold(
-              body: Center(
-                child: LiquidGlassSlider(
-                  value: value,
-                  onChanged: (double v) => setState(() => value = v),
-                  min: 0,
-                  max: 1,
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-    await tester.tap(find.byType(LiquidGlassSlider));
-    expect(find.byType(LiquidGlassSlider), findsOneWidget);
-  });
-
-  testWidgets('LiquidGlassStepper fallback renders', (WidgetTester tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Center(
-          child: LiquidGlassStepper(value: 5, onChanged: (int v) {}),
-        ),
-      ),
-    );
-    expect(find.text('5'), findsOneWidget);
-  });
-
-  testWidgets('LiquidGlassProgressView fallback renders',
-      (WidgetTester tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: Center(
-          child: LiquidGlassProgressView(value: 0.5),
-        ),
-      ),
-    );
-    expect(find.byType(LiquidGlassProgressView), findsOneWidget);
-  });
-
-  testWidgets('LiquidGlassDatePicker fallback renders',
-      (WidgetTester tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Center(
-          child: LiquidGlassDatePicker(
-            value: DateTime(2026, 6, 24),
-            onChanged: (DateTime v) {},
-          ),
-        ),
-      ),
-    );
-    expect(find.byType(LiquidGlassDatePicker), findsOneWidget);
-  });
-
-  testWidgets('LiquidGlassColorPicker fallback renders',
-      (WidgetTester tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Center(
-          child: LiquidGlassColorPicker(
+    testWidgets('standard-control tint styles the color fallback button', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        app(
+          LiquidGlassColorPicker(
             value: Colors.blue,
-            onChanged: (Color v) {},
+            onChanged: (_) {},
+            controlStyle: const LiquidGlassControlStyle(
+              tintColor: Colors.orange,
+            ),
           ),
         ),
-      ),
-    );
-    expect(find.byType(LiquidGlassColorPicker), findsOneWidget);
-  });
+      );
 
-  testWidgets('LiquidGlassButtonGroup fallback renders',
-      (WidgetTester tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Center(
-          child: LiquidGlassButtonGroup(
-            buttons: [
-              GroupButton(id: 'a', label: 'A', onPressed: () {}),
-              GroupButton(id: 'b', label: 'B', onPressed: () {}),
-            ],
+      final FilledButton button = tester.widget<FilledButton>(
+        find.byType(FilledButton),
+      );
+      expect(
+        button.style?.backgroundColor?.resolve(<WidgetState>{}),
+        Colors.orange,
+      );
+    });
+
+    for (final bool supportsOpacity in <bool>[true, false]) {
+      testWidgets('color fallback opacity capability is $supportsOpacity', (
+        WidgetTester tester,
+      ) async {
+        await tester.pumpWidget(
+          app(
+            LiquidGlassColorPicker(
+              value: Colors.blue,
+              supportsOpacity: supportsOpacity,
+              onChanged: (_) {},
+            ),
+          ),
+        );
+
+        await tester.tap(find.byType(FilledButton).first);
+        await tester.pumpAndSettle();
+        expect(
+          find.byType(Slider),
+          supportsOpacity ? findsOneWidget : findsNothing,
+        );
+      });
+    }
+
+    testWidgets('generic segmented control maps index to typed value', (
+      WidgetTester tester,
+    ) async {
+      var selected = _Period.day;
+      await tester.pumpWidget(
+        app(
+          StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              return LiquidGlassSegmentedControl<_Period>(
+                segments: const <LiquidGlassSegment<_Period>>[
+                  LiquidGlassSegment(value: _Period.day, label: 'Day'),
+                  LiquidGlassSegment(value: _Period.week, label: 'Week'),
+                ],
+                value: selected,
+                onChanged: (_Period value) {
+                  setState(() => selected = value);
+                },
+              );
+            },
           ),
         ),
-      ),
-    );
-    expect(find.text('A'), findsOneWidget);
-    expect(find.text('B'), findsOneWidget);
-  });
+      );
 
-  testWidgets('LiquidGlassTabBar fallback renders', (WidgetTester tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Center(
-          child: LiquidGlassTabBar(
-            items: [
-              TabItem(label: 'A'),
-              TabItem(label: 'B'),
+      await tester.tap(find.text('Week'));
+      await tester.pump();
+      expect(selected, _Period.week);
+    });
+
+    testWidgets('typed menu maps a native/fallback index to a Dart value', (
+      WidgetTester tester,
+    ) async {
+      _Period? selected;
+      await tester.pumpWidget(
+        app(
+          LiquidGlassMenu<_Period>(
+            label: 'Period',
+            items: const <LiquidGlassMenuItem<_Period>>[
+              LiquidGlassMenuItem(value: _Period.day, label: 'Day'),
+              LiquidGlassMenuItem(value: _Period.week, label: 'Week'),
             ],
-            currentIndex: 0,
-            onTap: (int i) {},
+            onSelected: (_Period value) => selected = value,
           ),
         ),
-      ),
-    );
-    expect(find.byType(LiquidGlassTabBar), findsOneWidget);
-  });
+      );
 
-  testWidgets('LiquidGlassNavigationBar fallback renders',
-      (WidgetTester tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Center(
-          child: LiquidGlassNavigationBar(
-            title: 'Test',
-            leading: [
-              BarAction(id: 'back', sfSymbol: 'chevron.left'),
-            ],
-            trailing: [
-              BarAction(id: 'done', sfSymbol: 'checkmark'),
-            ],
-          ),
-        ),
-      ),
-    );
-    expect(find.byType(LiquidGlassNavigationBar), findsOneWidget);
-  });
+      await tester.tap(find.text('Period'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Week').last);
+      await tester.pumpAndSettle();
+      expect(selected, _Period.week);
+    });
 
-  testWidgets('LiquidGlassToolbar fallback renders',
-      (WidgetTester tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: const Center(child: Text('content')),
-          bottomNavigationBar: LiquidGlassToolbar(
-            actions: [
-              BarAction(id: 'a', sfSymbol: 'trash'),
-              BarAction(id: 'b', sfSymbol: 'folder'),
-            ],
-          ),
-        ),
-      ),
-    );
-    expect(find.byType(LiquidGlassToolbar), findsOneWidget);
-  });
+    testWidgets('text controller survives rebuild and live theme change', (
+      WidgetTester tester,
+    ) async {
+      final TextEditingController controller = TextEditingController();
+      addTearDown(controller.dispose);
+      var alternate = false;
 
-  testWidgets('LiquidGlassSwitch fallback toggles', (WidgetTester tester) async {
-    bool value = false;
-    await tester.pumpWidget(
-      StatefulBuilder(
-        builder: (BuildContext context, StateSetter setState) {
-          return MaterialApp(
-            home: Scaffold(
-              body: Center(
-                child: LiquidGlassSwitch(
-                  value: value,
-                  onChanged: (bool v) => setState(() => value = v),
+      await tester.pumpWidget(
+        StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return MaterialApp(
+              home: LiquidGlassTheme(
+                data: LiquidGlassThemeData(
+                  style: LiquidGlassStyle(
+                    tint: alternate ? Colors.blue : Colors.purple,
+                  ),
+                ),
+                child: Scaffold(
+                  body: Column(
+                    children: <Widget>[
+                      LiquidGlassTextField.search(controller: controller),
+                      TextButton(
+                        onPressed: () => setState(() => alternate = !alternate),
+                        child: const Text('Theme'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
-      ),
-    );
-    await tester.tap(find.byType(LiquidGlassSwitch));
-    await tester.pumpAndSettle();
-    expect(value, isTrue);
+            );
+          },
+        ),
+      );
+
+      await tester.enterText(find.byType(TextField), 'Cupertino');
+      await tester.tap(find.text('Theme'));
+      await tester.pump();
+      expect(controller.text, 'Cupertino');
+      expect(find.text('Cupertino'), findsOneWidget);
+    });
+
+    testWidgets('diagnostics stay payload-free and idle on fallbacks', (
+      WidgetTester tester,
+    ) async {
+      final LiquidGlassDiagnostics diagnostics = LiquidGlassDiagnostics();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: LiquidGlassTheme(
+            data: const LiquidGlassThemeData(),
+            diagnostics: diagnostics,
+            child: LiquidGlassButton(label: 'Private value', onPressed: () {}),
+          ),
+        ),
+      );
+
+      expect(diagnostics.snapshot.channelOperations, 0);
+      expect(diagnostics.snapshot.viewsCreated, 0);
+    });
   });
 }
+
+enum _Period { day, week }

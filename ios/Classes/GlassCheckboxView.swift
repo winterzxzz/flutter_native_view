@@ -2,141 +2,111 @@ import Flutter
 import SwiftUI
 import UIKit
 
-// MARK: - Factory
+private struct GlassCheckboxConfiguration {
+  var value: Bool
+  let enabled: Bool
+  let accessibilityLabel: String?
+  let style: GlassStyleConfiguration
+  let controlStyle: GlassControlStyleConfiguration
 
-final class GlassCheckboxViewFactory: NSObject, FlutterPlatformViewFactory {
-  private let messenger: FlutterBinaryMessenger
-  init(messenger: FlutterBinaryMessenger) {
-    self.messenger = messenger
-    super.init()
-  }
-  func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol {
-    FlutterStandardMessageCodec.sharedInstance()
-  }
-  func create(withFrame frame: CGRect, viewIdentifier viewId: Int64, arguments args: Any?)
-    -> FlutterPlatformView
-  {
-    GlassCheckboxPlatformView(
-      frame: frame, viewId: viewId,
-      args: args as? [String: Any] ?? [:], messenger: messenger)
+  init(arguments: GlassArguments) {
+    value = arguments.bool("value")
+    enabled = arguments.bool("enabled", default: true)
+    accessibilityLabel = arguments.string("accessibilityLabel")
+    style = GlassStyleConfiguration(arguments: arguments)
+    controlStyle = GlassControlStyleConfiguration(arguments: arguments)
   }
 }
 
-// MARK: - Platform view
-
-final class GlassCheckboxPlatformView: NSObject, FlutterPlatformView {
-  private let container = UIView()
-  private let channel: FlutterMethodChannel
-  private let model: GlassCheckboxModel
-  private var host: UIViewController?
-
-  init(frame: CGRect, viewId: Int64, args: [String: Any], messenger: FlutterBinaryMessenger) {
-    channel = FlutterMethodChannel(
-      name: "\(FlutterNativeViewPlugin.checkboxViewType)/\(viewId)", binaryMessenger: messenger)
-    model = GlassCheckboxModel(args: args)
-    container.backgroundColor = .clear
-
-    super.init()
-
-    model.onChanged = { [weak channel] value in
-      channel?.invokeMethod("onChanged", arguments: value)
-    }
-
-    if #available(iOS 16.0, *) {
-      let hosting = UIHostingController(rootView: GlassCheckboxRoot(model: model))
-      hosting.view.backgroundColor = .clear
-      hosting.view.frame = container.bounds
-      hosting.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-      container.addSubview(hosting.view)
-      host = hosting
-    }
-
-    channel.setMethodCallHandler { [weak self] call, result in
-      guard let self = self else { result(nil); return }
-      switch call.method {
-      case "setValue":
-        if let v = call.arguments as? Bool { self.model.isOn = v }
-        result(nil)
-      case "updateConfig":
-        self.model.apply(args: call.arguments as? [String: Any] ?? [:])
-        result(nil)
-      default:
-        result(FlutterMethodNotImplemented)
-      }
-    }
-  }
-
-  func view() -> UIView { container }
-}
-
-// MARK: - SwiftUI
-
-final class GlassCheckboxModel: ObservableObject {
-  @Published var isOn: Bool
-  @Published var tint: UIColor?
-  @Published var respectAccessibility: Bool
+private final class GlassCheckboxModel: ObservableObject {
+  @Published var configuration: GlassCheckboxConfiguration
   var onChanged: ((Bool) -> Void)?
 
-  init(args: [String: Any]) {
-    isOn = args["value"] as? Bool ?? false
-    tint = GlassColor.fromARGB(args["tint"] as? Int)
-    respectAccessibility = args["respectAccessibility"] as? Bool ?? true
+  init(arguments: GlassArguments) {
+    configuration = GlassCheckboxConfiguration(arguments: arguments)
   }
 
-  func apply(args: [String: Any]) {
-    isOn = args["value"] as? Bool ?? isOn
-    tint = GlassColor.fromARGB(args["tint"] as? Int)
-    respectAccessibility = args["respectAccessibility"] as? Bool ?? respectAccessibility
+  func apply(_ arguments: GlassArguments) {
+    configuration = GlassCheckboxConfiguration(arguments: arguments)
+  }
+
+  func toggle() {
+    guard configuration.enabled else { return }
+    configuration.value.toggle()
+    onChanged?(configuration.value)
   }
 }
 
-@available(iOS 16.0, *)
-struct GlassCheckboxRoot: View {
+@available(iOS 15.0, *)
+private struct GlassCheckboxRoot: View {
   @ObservedObject var model: GlassCheckboxModel
-  @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
-  private func shape() -> RoundedRectangle {
-    RoundedRectangle(cornerRadius: 6, style: .continuous)
+  private var dimension: CGFloat {
+    switch model.configuration.controlStyle.size {
+    case .compact: return 24
+    case .regular: return 28
+    case .large: return 34
+    }
   }
 
-  private var checkColor: Color { Color(uiColor: model.tint ?? .systemBlue) }
+  private var hitDimension: CGFloat {
+    switch model.configuration.controlStyle.size {
+    case .compact: return 36
+    case .regular: return 44
+    case .large: return 52
+    }
+  }
 
   var body: some View {
-    Button(action: {
-      let newValue = !model.isOn
-      model.isOn = newValue
-      model.onChanged?(newValue)
-    }) {
+    Button(action: model.toggle) {
       ZStack {
-        background
-        if model.isOn {
+        RoundedRectangle(cornerRadius: dimension * 0.22, style: .continuous)
+          .stroke(.primary.opacity(0.18), lineWidth: 1)
+        if model.configuration.value {
           Image(systemName: "checkmark")
-            .font(.system(size: 14, weight: .bold))
-            .foregroundStyle(.white)
+            .font(.system(size: dimension * 0.5, weight: .bold))
         }
       }
-      .frame(width: 26, height: 26)
-      .contentShape(shape())
+      .frame(width: dimension, height: dimension)
+      .modifier(
+        GlassEffectModifier(
+          style: model.configuration.style,
+          solidFallbackColor: .secondarySystemBackground))
     }
     .buttonStyle(.plain)
+    .frame(minWidth: hitDimension, minHeight: hitDimension)
+    .contentShape(Rectangle())
+    .modifier(GlassControlStyleModifier(style: model.configuration.controlStyle))
+    .disabled(!model.configuration.enabled)
+    .opacity(
+      model.configuration.enabled ? 1 : model.configuration.controlStyle.disabledOpacity)
+    .accessibilityLabel(
+      model.configuration.accessibilityLabel.map(Text.init) ?? Text("Checkbox"))
+    .accessibilityValue(model.configuration.value ? Text("On") : Text("Off"))
   }
+}
 
-  @ViewBuilder
-  private var background: some View {
-    let solid = GlassAccessibility.solidFallback(
-      respect: model.respectAccessibility, reduceTransparency: reduceTransparency)
-    if !solid, #available(iOS 26.0, *) {
-      shape().fill(.clear).glassEffect(resolvedGlass(), in: shape())
-    } else {
-      // Opaque fallback (also used under Reduce Transparency).
-      shape().fill(model.isOn ? checkColor : checkColor.opacity(0.18))
-    }
-  }
-
-  @available(iOS 26.0, *)
-  private func resolvedGlass() -> Glass {
-    var glass = Glass.regular
-    if model.isOn { glass = glass.tint(checkColor) }
-    return glass
+enum GlassCheckboxView {
+  static func make(
+    frame: CGRect,
+    viewId: Int64,
+    arguments: GlassArguments,
+    messenger: FlutterBinaryMessenger
+  ) -> FlutterPlatformView {
+    let model = GlassCheckboxModel(arguments: arguments)
+    let host = GlassPlatformViewHost(
+      frame: frame,
+      viewType: FlutterNativeViewPlugin.checkboxViewType,
+      viewId: viewId,
+      messenger: messenger,
+      rootView: AnyView(GlassCheckboxRoot(model: model)),
+      fallbackSize: CGSize(width: 28, height: 28),
+      onUpdate: { [weak model] next in
+        model?.apply(next)
+        return false
+      })
+    host.applyInterfaceStyle(arguments)
+    model.onChanged = { [weak host] value in host?.emit("onChanged", arguments: value) }
+    return host
   }
 }

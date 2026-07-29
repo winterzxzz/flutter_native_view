@@ -2,199 +2,92 @@ import Flutter
 import SwiftUI
 import UIKit
 
-// MARK: - Factory
+private struct GlassStepperConfiguration {
+  var value: Int
+  let step: Int
+  let minimum: Int
+  let maximum: Int
+  let enabled: Bool
+  let accessibilityLabel: String?
+  let controlStyle: GlassControlStyleConfiguration
 
-final class GlassStepperViewFactory: NSObject, FlutterPlatformViewFactory {
-  private let messenger: FlutterBinaryMessenger
-  init(messenger: FlutterBinaryMessenger) {
-    self.messenger = messenger
-    super.init()
-  }
-  func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol {
-    FlutterStandardMessageCodec.sharedInstance()
-  }
-  func create(withFrame frame: CGRect, viewIdentifier viewId: Int64, arguments args: Any?)
-    -> FlutterPlatformView
-  {
-    GlassStepperPlatformView(
-      frame: frame, viewId: viewId,
-      args: args as? [String: Any] ?? [:], messenger: messenger)
+  init(arguments: GlassArguments) {
+    let requestedMinimum = arguments.int("min") ?? Int.min / 2
+    let requestedMaximum = arguments.int("max") ?? Int.max / 2
+    minimum = min(requestedMinimum, requestedMaximum)
+    maximum = max(requestedMinimum, requestedMaximum)
+    value = max(minimum, min(arguments.int("value", default: 0), maximum))
+    step = max(1, arguments.int("step", default: 1))
+    enabled = arguments.bool("enabled", default: true)
+    accessibilityLabel = arguments.string("accessibilityLabel")
+    controlStyle = GlassControlStyleConfiguration(arguments: arguments)
   }
 }
 
-// MARK: - Platform view
-
-final class GlassStepperPlatformView: NSObject, FlutterPlatformView {
-  private let container = UIView()
-  private let channel: FlutterMethodChannel
-  private let model: GlassStepperModel
-  private var host: UIViewController?
-
-  init(frame: CGRect, viewId: Int64, args: [String: Any], messenger: FlutterBinaryMessenger) {
-    channel = FlutterMethodChannel(
-      name: "\(FlutterNativeViewPlugin.stepperViewType)/\(viewId)", binaryMessenger: messenger)
-    model = GlassStepperModel(args: args)
-    container.backgroundColor = .clear
-    super.init()
-
-    model.onChanged = { [weak channel] value in
-      channel?.invokeMethod("onChanged", arguments: value)
-    }
-
-    if #available(iOS 16.0, *) {
-      let hosting = UIHostingController(rootView: GlassStepperRoot(model: model))
-      hosting.view.backgroundColor = .clear
-      hosting.view.frame = container.bounds
-      hosting.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-      container.addSubview(hosting.view)
-      host = hosting
-    }
-
-    channel.setMethodCallHandler { [weak self] call, result in
-      guard let self = self else { result(nil); return }
-      switch call.method {
-      case "getIntrinsicSize":
-        result(self.intrinsicSize())
-      case "setValue":
-        self.model.value = call.arguments as? Int ?? self.model.value
-        result(nil)
-      case "updateConfig":
-        self.model.apply(args: call.arguments as? [String: Any] ?? [:])
-        DispatchQueue.main.async { result(self.intrinsicSize()) }
-      default:
-        result(FlutterMethodNotImplemented)
-      }
-    }
-  }
-
-  private func intrinsicSize() -> [String: Double] {
-    guard let host = host else { return ["width": 140, "height": 44] }
-    // Use the hosting controller's ideal sizing; .compressedSize truncates SwiftUI
-    // Text to zero width, which makes labels disappear.
-    let unbounded = CGSize(
-      width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
-    if #available(iOS 16.0, *), let hosting = host as? UIHostingController<GlassStepperRoot> {
-      let size = hosting.sizeThatFits(in: unbounded)
-      return ["width": Double(ceil(size.width)), "height": Double(ceil(size.height))]
-    }
-    let view = host.view!
-    view.setNeedsLayout()
-    view.layoutIfNeeded()
-    let size = view.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
-    return ["width": Double(size.width), "height": Double(size.height)]
-  }
-
-  func view() -> UIView { container }
-}
-
-// MARK: - SwiftUI
-
-final class GlassStepperModel: ObservableObject {
-  @Published var value: Int
-  @Published var step: Int
-  @Published var min: Int?
-  @Published var max: Int?
+private final class GlassStepperModel: ObservableObject {
+  @Published var configuration: GlassStepperConfiguration
   var onChanged: ((Int) -> Void)?
 
-  init(args: [String: Any]) {
-    value = args["value"] as? Int ?? 0
-    step = args["step"] as? Int ?? 1
-    min = args["min"] as? Int
-    max = args["max"] as? Int
+  init(arguments: GlassArguments) {
+    configuration = GlassStepperConfiguration(arguments: arguments)
   }
 
-  func apply(args: [String: Any]) {
-    value = args["value"] as? Int ?? value
-    step = args["step"] as? Int ?? step
-    min = args["min"] as? Int
-    max = args["max"] as? Int
+  func apply(_ arguments: GlassArguments) {
+    configuration = GlassStepperConfiguration(arguments: arguments)
+  }
+
+  func setValue(_ value: Int) {
+    configuration.value = value
+    onChanged?(value)
   }
 }
 
-@available(iOS 16.0, *)
-struct GlassStepperRoot: View {
+@available(iOS 15.0, *)
+private struct GlassStepperRoot: View {
   @ObservedObject var model: GlassStepperModel
 
-  private let buttonSize: CGFloat = 36
-
   var body: some View {
-    HStack(spacing: 0) {
-      decrementButton
-        .clipShape(Circle())
-      valueLabel
-      incrementButton
-        .clipShape(Circle())
+    Stepper(
+      value: Binding(
+        get: { model.configuration.value },
+        set: model.setValue),
+      in: model.configuration.minimum...model.configuration.maximum,
+      step: model.configuration.step
+    ) {
+      Text("\(model.configuration.value)")
+        .font(.system(.body, design: .rounded).weight(.semibold))
     }
-    .padding(.horizontal, 4)
-    .frame(height: buttonSize)
+    .tint(model.configuration.controlStyle.tintColor.map { Color(uiColor: $0) })
+    .modifier(GlassControlStyleModifier(style: model.configuration.controlStyle))
+    .disabled(!model.configuration.enabled)
+    .opacity(
+      model.configuration.enabled ? 1 : model.configuration.controlStyle.disabledOpacity)
+    .accessibilityLabel(
+      model.configuration.accessibilityLabel.map(Text.init) ?? Text("Stepper"))
   }
+}
 
-  // MARK: - Buttons
-
-  private var decrementButton: some View {
-    Button(action: { decrement() }) {
-      Image(systemName: "minus")
-        .font(.system(size: 15, weight: .medium, design: .rounded))
-        .foregroundStyle(.primary)
-        .frame(width: buttonSize, height: buttonSize)
-    }
-    .buttonStyle(.plain)
-    .disabled(model.min != nil && model.value <= model.min!)
-    .opacity(model.min != nil && model.value <= model.min! ? 0.35 : 1)
-    .modifier(ConditionalGlassModifier())
-  }
-
-  private var incrementButton: some View {
-    Button(action: { increment() }) {
-      Image(systemName: "plus")
-        .font(.system(size: 15, weight: .medium, design: .rounded))
-        .foregroundStyle(.primary)
-        .frame(width: buttonSize, height: buttonSize)
-    }
-    .buttonStyle(.plain)
-    .disabled(model.max != nil && model.value >= model.max!)
-    .opacity(model.max != nil && model.value >= model.max! ? 0.35 : 1)
-    .modifier(ConditionalGlassModifier())
-  }
-
-  // MARK: - Value
-
-  private var valueLabel: some View {
-    Text("\(model.value)")
-      .font(.system(size: 17, weight: .semibold, design: .rounded))
-      .foregroundStyle(.primary)
-      .frame(minWidth: 40)
-      .contentTransition(.numericText())
-      .animation(.easeInOut(duration: 0.15), value: model.value)
-  }
-
-  // MARK: - Glass
-
-  private struct ConditionalGlassModifier: ViewModifier {
-    func body(content: Content) -> some View {
-      if #available(iOS 26.0, *) {
-        content.glassEffect(Glass.regular.interactive(), in: Circle())
-      } else {
-        content
-      }
-    }
-  }
-
-  // MARK: - Actions
-
-  private func decrement() {
-    let newVal = model.value - model.step
-    if model.min == nil || newVal >= model.min! {
-      model.value = newVal
-      model.onChanged?(newVal)
-    }
-  }
-
-  private func increment() {
-    let newVal = model.value + model.step
-    if model.max == nil || newVal <= model.max! {
-      model.value = newVal
-      model.onChanged?(newVal)
-    }
+enum GlassStepperView {
+  static func make(
+    frame: CGRect,
+    viewId: Int64,
+    arguments: GlassArguments,
+    messenger: FlutterBinaryMessenger
+  ) -> FlutterPlatformView {
+    let model = GlassStepperModel(arguments: arguments)
+    let host = GlassPlatformViewHost(
+      frame: frame,
+      viewType: FlutterNativeViewPlugin.stepperViewType,
+      viewId: viewId,
+      messenger: messenger,
+      rootView: AnyView(GlassStepperRoot(model: model)),
+      fallbackSize: CGSize(width: 150, height: 44),
+      onUpdate: { [weak model] next in
+        model?.apply(next)
+        return true
+      })
+    host.applyInterfaceStyle(arguments)
+    model.onChanged = { [weak host] value in host?.emit("onChanged", arguments: value) }
+    return host
   }
 }

@@ -1,81 +1,75 @@
+// The label and icon constructors initialize a nullable union field from a
+// deliberately non-null parameter; initializing formals would weaken the
+// public contract.
+// ignore_for_file: prefer_initializing_formals
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'glass_platform_view.dart';
-import 'liquid_glass_theme.dart';
+import 'liquid_glass_style.dart';
 
-const String _kButtonViewType = 'flutter_native_view/glass_button';
+const String _kButtonViewType = 'liquid_glass_native/button';
 
-/// A button rendered by native SwiftUI with authentic Apple Liquid Glass on
-/// iOS 26+. On non-iOS platforms it falls back to a Material [FilledButton].
-///
-/// The label is rendered natively, so the glass material wraps real content —
-/// this is what makes it look like the system glass rather than a flat overlay.
+/// Visual prominence of a native Liquid Glass button.
+enum LiquidGlassButtonProminence { standard, prominent }
+
+/// A native SwiftUI Liquid Glass button with real native label content.
 class LiquidGlassButton extends StatefulWidget {
   const LiquidGlassButton({
     super.key,
-    required this.label,
+    required String label,
     required this.onPressed,
     this.leadingSymbol,
     this.trailingSymbol,
-    this.tint,
-    this.labelColor,
-    this.borderRadius,
-    this.interactive,
-  });
+    this.style,
+    this.controlStyle,
+    this.semanticLabel,
+  }) : label = label,
+       iconOnlySymbol = null,
+       prominence = LiquidGlassButtonProminence.standard,
+       assert(label.length > 0);
 
-  /// A more prominent variant with a larger rounded shape.
-  factory LiquidGlassButton.heading({
-    Key? key,
+  /// A system prominent glass button on iOS 26+.
+  const LiquidGlassButton.prominent({
+    super.key,
     required String label,
-    required VoidCallback? onPressed,
-    String? leadingSymbol,
-    String? trailingSymbol,
-    Color? tint,
-    Color? labelColor,
-    double borderRadius = 28,
-    bool? interactive,
-  }) {
-    return LiquidGlassButton(
-      key: key,
-      label: label,
-      onPressed: onPressed,
-      leadingSymbol: leadingSymbol,
-      trailingSymbol: trailingSymbol,
-      tint: tint,
-      labelColor: labelColor,
-      borderRadius: borderRadius,
-      interactive: interactive,
-    );
-  }
+    required this.onPressed,
+    this.leadingSymbol,
+    this.trailingSymbol,
+    this.style,
+    this.controlStyle,
+    this.semanticLabel,
+  }) : label = label,
+       iconOnlySymbol = null,
+       prominence = LiquidGlassButtonProminence.prominent,
+       assert(label.length > 0);
 
-  /// Button title text, rendered natively on iOS.
-  final String label;
+  /// An icon-only native button.
+  const LiquidGlassButton.icon({
+    super.key,
+    required LiquidGlassSymbol symbol,
+    required this.onPressed,
+    this.style,
+    this.controlStyle,
+    this.semanticLabel,
+  }) : label = null,
+       iconOnlySymbol = symbol,
+       leadingSymbol = null,
+       trailingSymbol = null,
+       prominence = LiquidGlassButtonProminence.standard;
 
-  /// Optional SF Symbol shown before the label (prefix icon).
-  final String? leadingSymbol;
-
-  /// Optional SF Symbol shown after the label (suffix icon).
-  final String? trailingSymbol;
-
-  /// Called on tap. When `null`, the button is disabled.
+  final String? label;
+  final LiquidGlassSymbol? iconOnlySymbol;
+  final LiquidGlassSymbol? leadingSymbol;
+  final LiquidGlassSymbol? trailingSymbol;
   final VoidCallback? onPressed;
+  final LiquidGlassButtonProminence prominence;
+  final LiquidGlassStyle? style;
+  final LiquidGlassControlStyle? controlStyle;
 
-  /// Optional glass tint color. Tints the glass material, not the label.
-  /// Falls back to the [LiquidGlassTheme] tint when `null`.
-  final Color? tint;
-
-  /// Optional label text color. Falls back to the [LiquidGlassTheme] label
-  /// color, otherwise white on iOS glass.
-  final Color? labelColor;
-
-  /// Optional corner radius. When `null`, falls back to the
-  /// [LiquidGlassTheme] value, otherwise the native button is a capsule.
-  final double? borderRadius;
-
-  /// Whether the iOS 26 glass reacts to touch. When `null`, falls back to the
-  /// [LiquidGlassTheme] value, otherwise `true`.
-  final bool? interactive;
+  /// Accessibility label used when visible text is absent or insufficient.
+  final String? semanticLabel;
 
   @override
   State<LiquidGlassButton> createState() => _LiquidGlassButtonState();
@@ -90,64 +84,127 @@ class _LiquidGlassButtonState extends State<LiquidGlassButton>
   bool get measuresSize => true;
 
   @override
-  Map<String, dynamic> buildParams() {
-    final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
-    return <String, dynamic>{
-      'title': widget.label,
-      'leadingSymbol': widget.leadingSymbol,
-      'trailingSymbol': widget.trailingSymbol,
-      'tint': (widget.tint ?? t.tint)?.toARGB32(),
-      'labelColor': (widget.labelColor ?? t.labelColor)?.toARGB32(),
-      'cornerRadius': widget.borderRadius ?? t.borderRadius,
-      'interactive': widget.interactive ?? t.interactive ?? true,
-      'respectAccessibility': t.respectAccessibility,
+  Map<String, Object?> buildParams() {
+    final LiquidGlassStyle glass = resolveGlassStyle(context, widget.style);
+    final LiquidGlassControlStyle control = resolveControlStyle(
+      context,
+      widget.controlStyle,
+    );
+    return <String, Object?>{
+      'label': widget.label,
+      'iconOnlySymbol': widget.iconOnlySymbol?.name,
+      'leadingSymbol': widget.leadingSymbol?.name,
+      'trailingSymbol': widget.trailingSymbol?.name,
+      'prominence': widget.prominence.name,
       'enabled': widget.onPressed != null,
+      'accessibilityLabel': widget.semanticLabel,
+      ...encodeStyles(glass, control),
     };
   }
 
   @override
-  Future<dynamic> handleCall(MethodCall call) async {
+  Future<Object?> handleCall(MethodCall call) async {
     if (call.method == 'onPressed') widget.onPressed?.call();
     return null;
   }
 
-  // Approximate the native button size from the label up front so the view
-  // opens at roughly its final size. Without this it starts at a hardcoded
-  // placeholder and visibly resizes once Swift reports the real size, which
-  // reflows the surrounding layout on first paint.
-  Size _estimatedSize() {
-    final TextPainter tp = TextPainter(
+  Size _estimate(LiquidGlassControlStyle control) {
+    final double dimension = control.size.minimumDimension;
+    if (widget.iconOnlySymbol != null) return Size.square(dimension);
+    final TextPainter painter = TextPainter(
       text: TextSpan(
         text: widget.label,
-        // Matches the native label font (.system(size: 17, weight: .semibold)).
-        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+        style: TextStyle(
+          fontSize: switch (control.size) {
+            LiquidGlassControlSize.compact => 15,
+            LiquidGlassControlSize.regular => 17,
+            LiquidGlassControlSize.large => 19,
+          },
+          fontWeight: FontWeight.w600,
+        ),
       ),
       textDirection: TextDirection.ltr,
     )..layout();
-    const double iconWidth = 20; // SF Symbol at ~16pt + slack
-    const double iconSpacing = 6; // HStack spacing
-    const double hPadding = 40; // 20 leading + 20 trailing
-    const double vPadding = 24; // 12 top + 12 bottom
-    double width = tp.width + hPadding;
-    if (widget.leadingSymbol != null) width += iconWidth + iconSpacing;
-    if (widget.trailingSymbol != null) width += iconWidth + iconSpacing;
-    return Size(width.ceilToDouble(), (tp.height + vPadding).ceilToDouble());
-  }
-
-  @override
-  void didUpdateWidget(LiquidGlassButton oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    syncConfig();
+    var width = painter.width + dimension;
+    if (widget.leadingSymbol != null) width += 24;
+    if (widget.trailingSymbol != null) width += 24;
+    return Size(width.ceilToDouble(), dimension);
   }
 
   @override
   Widget build(BuildContext context) {
+    final LiquidGlassStyle glass = resolveGlassStyle(context, widget.style);
+    final LiquidGlassControlStyle control = resolveControlStyle(
+      context,
+      widget.controlStyle,
+    );
     if (!isGlassPlatform) {
-      return FilledButton(
-        onPressed: widget.onPressed,
-        child: Text(widget.label),
+      return applyFallbackControlStyle(
+        child: _fallback(glass, control),
+        controlStyle: control,
+        enabled: widget.onPressed != null,
       );
     }
-    return glassView(estimatedSize: _estimatedSize());
+    return glassView(estimatedSize: _estimate(control));
+  }
+
+  Widget _fallback(LiquidGlassStyle glass, LiquidGlassControlStyle control) {
+    final double dimension = control.size.minimumDimension;
+    final ButtonStyle buttonStyle = FilledButton.styleFrom(
+      foregroundColor: control.foregroundColor,
+      backgroundColor: glass.tint,
+      minimumSize: Size(dimension, dimension),
+      disabledForegroundColor: control.foregroundColor?.withValues(
+        alpha: control.disabledOpacity,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: fallbackBorderRadius(glass.shape),
+      ),
+    );
+    if (widget.iconOnlySymbol case final LiquidGlassSymbol symbol) {
+      return Semantics(
+        label: widget.semanticLabel,
+        button: true,
+        child: IconButton.filled(
+          onPressed: widget.onPressed,
+          icon: Icon(symbol.fallbackIcon ?? Icons.circle_outlined),
+          color: control.foregroundColor,
+          style: IconButton.styleFrom(
+            backgroundColor: glass.tint,
+            minimumSize: Size.square(dimension),
+            shape: RoundedRectangleBorder(
+              borderRadius: fallbackBorderRadius(glass.shape),
+            ),
+          ),
+        ),
+      );
+    }
+    final Widget content = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        if (widget.leadingSymbol?.fallbackIcon case final IconData icon) ...[
+          Icon(icon),
+          const SizedBox(width: 8),
+        ],
+        Text(widget.label!),
+        if (widget.trailingSymbol?.fallbackIcon case final IconData icon) ...[
+          const SizedBox(width: 8),
+          Icon(icon),
+        ],
+      ],
+    );
+    final Widget button =
+        widget.prominence == LiquidGlassButtonProminence.prominent
+        ? FilledButton(
+            onPressed: widget.onPressed,
+            style: buttonStyle,
+            child: content,
+          )
+        : FilledButton.tonal(
+            onPressed: widget.onPressed,
+            style: buttonStyle,
+            child: content,
+          );
+    return Semantics(label: widget.semanticLabel, child: button);
   }
 }

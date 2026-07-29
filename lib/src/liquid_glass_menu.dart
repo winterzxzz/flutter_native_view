@@ -2,66 +2,54 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'glass_platform_view.dart';
-import 'liquid_glass_theme.dart';
+import 'liquid_glass_style.dart';
 
-const String _kMenuViewType = 'flutter_native_view/glass_menu';
+const String _kMenuViewType = 'liquid_glass_native/menu';
 
-/// A single entry inside a [LiquidGlassMenu].
-class MenuItem {
-  const MenuItem({required this.id, required this.title, this.sfSymbol});
+/// A typed native menu item.
+@immutable
+final class LiquidGlassMenuItem<T> {
+  const LiquidGlassMenuItem({
+    required this.value,
+    required this.label,
+    this.symbol,
+    this.enabled = true,
+  }) : assert(label.length > 0);
 
-  /// Stable identifier passed to [LiquidGlassMenu.onSelected] when tapped.
-  final String id;
-
-  /// Visible row text.
-  final String title;
-
-  /// Optional SF Symbol shown beside the title.
-  final String? sfSymbol;
+  final T value;
+  final String label;
+  final LiquidGlassSymbol? symbol;
+  final bool enabled;
 }
 
-/// A native pull-down menu button with Liquid Glass styling on iOS 26+.
-///
-/// Tapping the button presents a native menu of [items]; the selected item's
-/// id is reported through [onSelected]. On non-iOS platforms it falls back to a
-/// Material [PopupMenuButton].
-class LiquidGlassMenu extends StatefulWidget {
+/// A native pull-down menu that returns typed Dart values.
+class LiquidGlassMenu<T> extends StatefulWidget {
   const LiquidGlassMenu({
     super.key,
     required this.label,
     required this.items,
     required this.onSelected,
-    this.sfSymbol,
-    this.tint,
-    this.iconColor,
-  });
+    this.symbol,
+    this.style,
+    this.controlStyle,
+    this.semanticLabel,
+  }) : assert(label.length > 0),
+       assert(items.length > 0);
 
-  /// Text shown on the menu button itself.
   final String label;
-
-  /// The selectable rows presented when the menu opens.
-  final List<MenuItem> items;
-
-  /// Called with the [MenuItem.id] of the tapped row.
-  final ValueChanged<String> onSelected;
-
-  /// Optional SF Symbol shown on the button before the label.
-  final String? sfSymbol;
-
-  /// Optional glass tint color. Falls back to the [LiquidGlassTheme] tint.
-  final Color? tint;
-
-  /// Optional icon/label foreground color. When set, overrides the tint for
-  /// the button's symbol and text so they can be white regardless of tint.
-  /// Falls back to the [LiquidGlassTheme] icon color.
-  final Color? iconColor;
+  final List<LiquidGlassMenuItem<T>> items;
+  final ValueChanged<T>? onSelected;
+  final LiquidGlassSymbol? symbol;
+  final LiquidGlassStyle? style;
+  final LiquidGlassControlStyle? controlStyle;
+  final String? semanticLabel;
 
   @override
-  State<LiquidGlassMenu> createState() => _LiquidGlassMenuState();
+  State<LiquidGlassMenu<T>> createState() => _LiquidGlassMenuState<T>();
 }
 
-class _LiquidGlassMenuState extends State<LiquidGlassMenu>
-    with GlassPlatformViewMixin<LiquidGlassMenu> {
+class _LiquidGlassMenuState<T> extends State<LiquidGlassMenu<T>>
+    with GlassPlatformViewMixin<LiquidGlassMenu<T>> {
   @override
   String get glassViewType => _kMenuViewType;
 
@@ -69,52 +57,113 @@ class _LiquidGlassMenuState extends State<LiquidGlassMenu>
   bool get measuresSize => true;
 
   @override
-  Map<String, dynamic> buildParams() {
-    final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
-    return <String, dynamic>{
+  Map<String, Object?> buildParams() {
+    final LiquidGlassStyle glass = resolveGlassStyle(context, widget.style);
+    final LiquidGlassControlStyle control = resolveControlStyle(
+      context,
+      widget.controlStyle,
+    );
+    return <String, Object?>{
       'label': widget.label,
-      'sfSymbol': widget.sfSymbol ?? '',
+      'symbol': widget.symbol?.name,
+      'enabled': widget.onSelected != null,
+      'accessibilityLabel': widget.semanticLabel,
       'items': widget.items
-          .map((MenuItem m) => <String, dynamic>{
-                'id': m.id,
-                'title': m.title,
-                'sfSymbol': m.sfSymbol ?? '',
-              })
-          .toList(),
-      'tint': (widget.tint ?? t.tint)?.toARGB32(),
-      'iconColor': (widget.iconColor ?? t.iconColor)?.toARGB32(),
-      'respectAccessibility': t.respectAccessibility,
+          .map(
+            (LiquidGlassMenuItem<T> item) => <String, Object?>{
+              'label': item.label,
+              'symbol': item.symbol?.name,
+              'enabled': item.enabled,
+            },
+          )
+          .toList(growable: false),
+      ...encodeStyles(glass, control),
     };
   }
 
   @override
-  Future<dynamic> handleCall(MethodCall call) async {
-    if (call.method == 'onSelected') {
-      widget.onSelected(call.arguments as String);
+  Future<Object?> handleCall(MethodCall call) async {
+    if (call.method == 'onSelected' && call.arguments is num) {
+      final int index = (call.arguments as num).toInt();
+      if (index >= 0 && index < widget.items.length) {
+        widget.onSelected?.call(widget.items[index].value);
+      }
     }
     return null;
   }
 
   @override
-  void didUpdateWidget(LiquidGlassMenu oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    syncConfig();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final LiquidGlassStyle glass = resolveGlassStyle(context, widget.style);
+    final LiquidGlassControlStyle control = resolveControlStyle(
+      context,
+      widget.controlStyle,
+    );
     if (!isGlassPlatform) {
-      return PopupMenuButton<String>(
-        onSelected: widget.onSelected,
-        itemBuilder: (BuildContext context) => widget.items
-            .map((MenuItem m) => PopupMenuItem<String>(
-                  value: m.id,
-                  child: Text(m.title),
-                ))
-            .toList(),
-        child: Text(widget.label),
+      return applyFallbackControlStyle(
+        controlStyle: control,
+        enabled: widget.onSelected != null,
+        child: PopupMenuButton<int>(
+          enabled: widget.onSelected != null,
+          onSelected: (int index) =>
+              widget.onSelected?.call(widget.items[index].value),
+          color: glass.tint,
+          itemBuilder: (BuildContext context) => <PopupMenuEntry<int>>[
+            for (var index = 0; index < widget.items.length; index++)
+              PopupMenuItem<int>(
+                value: index,
+                enabled: widget.items[index].enabled,
+                child: Row(
+                  children: <Widget>[
+                    if (widget.items[index].symbol?.fallbackIcon
+                        case final IconData icon) ...[
+                      Icon(icon, color: control.foregroundColor),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(widget.items[index].label),
+                  ],
+                ),
+              ),
+          ],
+          child: Semantics(
+            label: widget.semanticLabel,
+            button: true,
+            child: DecoratedBox(
+              decoration: ShapeDecoration(
+                color: glass.tint?.withValues(
+                  alpha: glass.variant == LiquidGlassVariant.clear
+                      ? 0.08
+                      : 0.18,
+                ),
+                shape: fallbackOutlinedBorder(glass.shape),
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: control.size.minimumDimension,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      if (widget.symbol?.fallbackIcon
+                          case final IconData icon) ...[
+                        Icon(icon, color: control.foregroundColor),
+                        const SizedBox(width: 8),
+                      ],
+                      Text(widget.label),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       );
     }
-    return glassView(estimatedSize: const Size(100, 44));
+    return glassView(
+      estimatedSize: Size(120, control.size.minimumDimension),
+      gesture: GlassGesture.tap,
+    );
   }
 }

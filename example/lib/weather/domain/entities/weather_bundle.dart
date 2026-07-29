@@ -27,11 +27,11 @@ class WeatherBundle {
 
   @override
   int get hashCode => Object.hash(
-        location,
-        current,
-        Object.hashAll(hourly),
-        Object.hashAll(daily),
-      );
+    location,
+    current,
+    Object.hashAll(hourly),
+    Object.hashAll(daily),
+  );
 
   static bool _listEq<T>(List<T> a, List<T> b) =>
       a.length == b.length &&

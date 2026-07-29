@@ -3,7 +3,8 @@
 Stories are work packets. They turn product intent into bounded implementation
 and validation work.
 
-No story packets are active yet.
+Active high-risk story: `US-025-crystal-v1` under
+`epics/E04-liquid-glass-v1/`.
 
 ## Normal Story
 

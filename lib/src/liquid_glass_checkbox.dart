@@ -2,36 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'glass_platform_view.dart';
-import 'liquid_glass_theme.dart';
+import 'liquid_glass_style.dart';
 
-const String _kCheckboxViewType = 'flutter_native_view/glass_checkbox';
+const String _kCheckboxViewType = 'liquid_glass_native/checkbox';
 
-/// A native checkbox rendered with Liquid Glass styling on iOS 26+: a rounded
-/// glass square that shows a checkmark when checked.
-///
-/// On non-iOS platforms it falls back to a Material [Checkbox]. This is a
-/// controlled widget — pass [value] in and update your state from [onChanged].
+/// A controlled custom native checkbox with Liquid Glass on iOS 26+.
 class LiquidGlassCheckbox extends StatefulWidget {
   const LiquidGlassCheckbox({
     super.key,
     required this.value,
     required this.onChanged,
-    this.tint,
-    this.size = 28,
+    this.style,
+    this.controlStyle,
+    this.semanticLabel,
   });
 
-  /// Whether the checkbox is currently checked.
   final bool value;
-
-  /// Called with the new value when the checkbox is tapped.
-  final ValueChanged<bool> onChanged;
-
-  /// Optional tint for the checked state. Falls back to the [LiquidGlassTheme]
-  /// tint.
-  final Color? tint;
-
-  /// Box size (width = height). Defaults to 28.
-  final double size;
+  final ValueChanged<bool>? onChanged;
+  final LiquidGlassStyle? style;
+  final LiquidGlassControlStyle? controlStyle;
+  final String? semanticLabel;
 
   @override
   State<LiquidGlassCheckbox> createState() => _LiquidGlassCheckboxState();
@@ -43,35 +33,64 @@ class _LiquidGlassCheckboxState extends State<LiquidGlassCheckbox>
   String get glassViewType => _kCheckboxViewType;
 
   @override
-  Map<String, dynamic> buildParams() {
-    final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
-    return <String, dynamic>{
+  Map<String, Object?> buildParams() {
+    final LiquidGlassStyle glass = resolveGlassStyle(context, widget.style);
+    final LiquidGlassControlStyle control = resolveControlStyle(
+      context,
+      widget.controlStyle,
+    );
+    return <String, Object?>{
       'value': widget.value,
-      'tint': (widget.tint ?? t.tint)?.toARGB32(),
-      'respectAccessibility': t.respectAccessibility,
+      'enabled': widget.onChanged != null,
+      'accessibilityLabel': widget.semanticLabel,
+      ...encodeStyles(glass, control),
     };
   }
 
   @override
-  Future<dynamic> handleCall(MethodCall call) async {
-    if (call.method == 'onChanged') widget.onChanged(call.arguments as bool);
+  Future<Object?> handleCall(MethodCall call) async {
+    if (call.method == 'onChanged' && call.arguments is bool) {
+      final bool value = call.arguments as bool;
+      dispatchControlledNativeState(<String, Object?>{
+        'value': value,
+      }, () => widget.onChanged?.call(value));
+    }
     return null;
   }
 
   @override
-  void didUpdateWidget(LiquidGlassCheckbox oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    syncConfig();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final LiquidGlassStyle glass = resolveGlassStyle(context, widget.style);
+    final LiquidGlassControlStyle control = resolveControlStyle(
+      context,
+      widget.controlStyle,
+    );
+    final double size = control.size.minimumDimension;
     if (!isGlassPlatform) {
-      return Checkbox(
-        value: widget.value,
-        onChanged: (bool? v) => widget.onChanged(v ?? false),
+      return applyFallbackControlStyle(
+        controlStyle: control,
+        enabled: widget.onChanged != null,
+        child: SizedBox.square(
+          dimension: size,
+          child: FittedBox(
+            child: Semantics(
+              label: widget.semanticLabel,
+              child: Checkbox(
+                value: widget.value,
+                onChanged: widget.onChanged == null
+                    ? null
+                    : (bool? value) {
+                        if (value != null) widget.onChanged!(value);
+                      },
+                activeColor: glass.tint,
+                checkColor: control.foregroundColor,
+                shape: fallbackOutlinedBorder(glass.shape),
+              ),
+            ),
+          ),
+        ),
       );
     }
-    return glassView(width: widget.size, height: widget.size);
+    return glassView(width: size, height: size, gesture: GlassGesture.tap);
   }
 }

@@ -2,191 +2,131 @@ import Flutter
 import SwiftUI
 import UIKit
 
-// MARK: - Factory
+private struct GlassButtonConfiguration {
+  let label: String?
+  let iconOnlySymbol: String?
+  let leadingSymbol: String?
+  let trailingSymbol: String?
+  let prominent: Bool
+  let enabled: Bool
+  let accessibilityLabel: String?
+  let style: GlassStyleConfiguration
+  let controlStyle: GlassControlStyleConfiguration
 
-final class GlassButtonViewFactory: NSObject, FlutterPlatformViewFactory {
-  private let messenger: FlutterBinaryMessenger
-  init(messenger: FlutterBinaryMessenger) {
-    self.messenger = messenger
-    super.init()
-  }
-  func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol {
-    FlutterStandardMessageCodec.sharedInstance()
-  }
-  func create(withFrame frame: CGRect, viewIdentifier viewId: Int64, arguments args: Any?)
-    -> FlutterPlatformView
-  {
-    GlassButtonPlatformView(
-      frame: frame, viewId: viewId,
-      args: args as? [String: Any] ?? [:], messenger: messenger)
+  init(arguments: GlassArguments) {
+    label = arguments.string("label")
+    iconOnlySymbol = arguments.string("iconOnlySymbol")
+    leadingSymbol = arguments.string("leadingSymbol")
+    trailingSymbol = arguments.string("trailingSymbol")
+    prominent = arguments.string("prominence") == "prominent"
+    enabled = arguments.bool("enabled", default: true)
+    accessibilityLabel = arguments.string("accessibilityLabel")
+    style = GlassStyleConfiguration(arguments: arguments)
+    controlStyle = GlassControlStyleConfiguration(arguments: arguments)
   }
 }
 
-// MARK: - Platform view
-
-final class GlassButtonPlatformView: NSObject, FlutterPlatformView {
-  private let container = UIView()
-  private let channel: FlutterMethodChannel
-  private let model: GlassButtonModel
-  private var host: UIViewController?
-
-  init(frame: CGRect, viewId: Int64, args: [String: Any], messenger: FlutterBinaryMessenger) {
-    channel = FlutterMethodChannel(
-      name: "\(FlutterNativeViewPlugin.buttonViewType)/\(viewId)", binaryMessenger: messenger)
-    model = GlassButtonModel(args: args)
-    container.backgroundColor = .clear
-
-    super.init()
-
-    model.onPressed = { [weak channel] in channel?.invokeMethod("onPressed", arguments: nil) }
-
-    if #available(iOS 16.0, *) {
-      let hosting = UIHostingController(rootView: GlassButtonRoot(model: model))
-      hosting.view.backgroundColor = .clear
-      hosting.view.frame = container.bounds
-      hosting.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-      container.addSubview(hosting.view)
-      host = hosting
-    }
-
-    channel.setMethodCallHandler { [weak self] call, result in
-      guard let self = self else { result(nil); return }
-      switch call.method {
-      case "getIntrinsicSize":
-        result(self.intrinsicSize())
-      case "updateConfig":
-        self.model.apply(args: call.arguments as? [String: Any] ?? [:])
-        DispatchQueue.main.async { result(self.intrinsicSize()) }
-      default:
-        result(FlutterMethodNotImplemented)
-      }
-    }
-  }
-
-  private func intrinsicSize() -> [String: Double] {
-    guard let host = host else { return ["width": 120, "height": 48] }
-    // Measure with the hosting controller's own sizing, which respects SwiftUI's
-    // *ideal* (un-truncated) size. `systemLayoutSizeFitting(.compressedSize)` asks
-    // for the smallest size and lets SwiftUI truncate Text to zero width, which is
-    // why labels vanished while fixed-size icons stayed visible.
-    let unbounded = CGSize(
-      width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
-    if #available(iOS 16.0, *),
-      let hosting = host as? UIHostingController<GlassButtonRoot>
-    {
-      let size = hosting.sizeThatFits(in: unbounded)
-      return ["width": Double(ceil(size.width)), "height": Double(ceil(size.height))]
-    }
-    let view = host.view!
-    view.setNeedsLayout()
-    view.layoutIfNeeded()
-    let size = view.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
-    return ["width": Double(size.width), "height": Double(size.height)]
-  }
-
-  func view() -> UIView { container }
-}
-
-// MARK: - SwiftUI
-
-final class GlassButtonModel: ObservableObject {
-  @Published var title: String
-  @Published var leadingSymbol: String?
-  @Published var trailingSymbol: String?
-  @Published var tint: UIColor?
-  @Published var labelColor: UIColor?
-  @Published var cornerRadius: CGFloat?
-  @Published var interactive: Bool
-  @Published var enabled: Bool
-  @Published var respectAccessibility: Bool
+private final class GlassButtonModel: ObservableObject {
+  @Published var configuration: GlassButtonConfiguration
   var onPressed: (() -> Void)?
 
-  init(args: [String: Any]) {
-    title = args["title"] as? String ?? "Button"
-    leadingSymbol = args["leadingSymbol"] as? String
-    trailingSymbol = args["trailingSymbol"] as? String
-    tint = GlassColor.fromARGB(args["tint"] as? Int)
-    labelColor = GlassColor.fromARGB(args["labelColor"] as? Int)
-    cornerRadius = (args["cornerRadius"] as? Double).map { CGFloat($0) }
-    interactive = args["interactive"] as? Bool ?? true
-    enabled = args["enabled"] as? Bool ?? true
-    respectAccessibility = args["respectAccessibility"] as? Bool ?? true
+  init(arguments: GlassArguments) {
+    configuration = GlassButtonConfiguration(arguments: arguments)
   }
 
-  func apply(args: [String: Any]) {
-    title = args["title"] as? String ?? title
-    leadingSymbol = args["leadingSymbol"] as? String
-    trailingSymbol = args["trailingSymbol"] as? String
-    tint = GlassColor.fromARGB(args["tint"] as? Int)
-    labelColor = GlassColor.fromARGB(args["labelColor"] as? Int)
-    cornerRadius = (args["cornerRadius"] as? Double).map { CGFloat($0) }
-    interactive = args["interactive"] as? Bool ?? interactive
-    enabled = args["enabled"] as? Bool ?? enabled
-    respectAccessibility = args["respectAccessibility"] as? Bool ?? respectAccessibility
+  func apply(_ arguments: GlassArguments) {
+    configuration = GlassButtonConfiguration(arguments: arguments)
   }
 }
 
-@available(iOS 16.0, *)
-struct GlassButtonRoot: View {
+@available(iOS 15.0, *)
+private struct GlassButtonRoot: View {
   @ObservedObject var model: GlassButtonModel
-  @Namespace private var namespace
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-  private func shape() -> AnyShape {
-    if let r = model.cornerRadius {
-      return AnyShape(RoundedRectangle(cornerRadius: r, style: .continuous))
+  private var configuration: GlassButtonConfiguration { model.configuration }
+
+  private var dimension: CGFloat {
+    switch configuration.controlStyle.size {
+    case .compact: return 36
+    case .regular: return 44
+    case .large: return 52
     }
-    return AnyShape(Capsule())
   }
 
+  @ViewBuilder
   private var label: some View {
-    // Label color is independent of the glass tint: a tinted glass tints the
-    // material, not the text. Using the tint for both makes the label vanish
-    // into the surface (e.g. orange text on orange glass).
-    HStack(spacing: 6) {
-      if let leading = model.leadingSymbol {
-        Image(systemName: leading).font(.system(size: 16, weight: .semibold))
+    if let symbol = configuration.iconOnlySymbol {
+      Image(systemName: symbol)
+        .font(.system(size: dimension * 0.43, weight: .semibold))
+        .frame(width: dimension, height: dimension)
+    } else {
+      HStack(spacing: 7) {
+        if let symbol = configuration.leadingSymbol {
+          Image(systemName: symbol)
+        }
+        if let label = configuration.label {
+          Text(label)
+        }
+        if let symbol = configuration.trailingSymbol {
+          Image(systemName: symbol)
+        }
       }
-      if !model.title.isEmpty {
-        Text(model.title).font(.system(size: 17, weight: .semibold))
-      }
-      if let trailing = model.trailingSymbol {
-        Image(systemName: trailing).font(.system(size: 16, weight: .semibold))
-      }
+      .font(.system(size: dimension * 0.38, weight: .semibold))
+      .padding(.horizontal, dimension * 0.42)
+      .frame(minHeight: dimension)
     }
-    .foregroundStyle(model.labelColor.map { Color(uiColor: $0) } ?? .white)
-    .padding(.horizontal, 20)
-    .padding(.vertical, 12)
   }
 
+  private var button: some View {
+    Button(action: { model.onPressed?() }) { label }
+      .modifier(GlassButtonShapeModifier(shape: configuration.style.shape))
+      .modifier(GlassControlStyleModifier(style: configuration.controlStyle))
+      .tint(configuration.style.tint.map { Color(uiColor: $0) })
+      .disabled(!configuration.enabled)
+      .opacity(configuration.enabled ? 1 : configuration.controlStyle.disabledOpacity)
+      .accessibilityLabel(
+        configuration.accessibilityLabel
+          .map(Text.init) ?? Text(configuration.label ?? "Button"))
+  }
+
+  @ViewBuilder
   var body: some View {
     if #available(iOS 26.0, *) {
-      GlassEffectContainer(spacing: 20) {
-        Button(action: { model.onPressed?() }) {
-          label
-            .contentShape(shape())
-            .glassEffect(resolvedGlass(), in: shape())
-        }
-        .buttonStyle(.plain)
-        .disabled(!model.enabled)
-        .opacity(model.enabled ? 1 : 0.4)
+      if configuration.prominent {
+        button.buttonStyle(.glassProminent)
+      } else {
+        button.buttonStyle(.glass(configuration.style.glass(reduceMotion: reduceMotion)))
       }
+    } else if configuration.prominent {
+      button.buttonStyle(.borderedProminent)
     } else {
-      Button(action: { model.onPressed?() }) { label }
-        .buttonStyle(.borderedProminent)
-        .tint(model.tint.map { Color(uiColor: $0) } ?? .accentColor)
-        .clipShape(shape())
-        .disabled(!model.enabled)
+      button.buttonStyle(.bordered)
     }
   }
+}
 
-  @available(iOS 26.0, *)
-  private func resolvedGlass() -> Glass {
-    var glass = Glass.regular
-    let interactive = GlassAccessibility.interactive(
-      model.interactive, respect: model.respectAccessibility, reduceMotion: reduceMotion)
-    if interactive { glass = glass.interactive() }
-    if let tint = model.tint { glass = glass.tint(Color(uiColor: tint)) }
-    return glass
+enum GlassButtonView {
+  static func make(
+    frame: CGRect,
+    viewId: Int64,
+    arguments: GlassArguments,
+    messenger: FlutterBinaryMessenger
+  ) -> FlutterPlatformView {
+    let model = GlassButtonModel(arguments: arguments)
+    let host = GlassPlatformViewHost(
+      frame: frame,
+      viewType: FlutterNativeViewPlugin.buttonViewType,
+      viewId: viewId,
+      messenger: messenger,
+      rootView: AnyView(GlassButtonRoot(model: model)),
+      fallbackSize: CGSize(width: 120, height: 44),
+      onUpdate: { [weak model] next in
+        model?.apply(next)
+        return true
+      })
+    host.applyInterfaceStyle(arguments)
+    model.onPressed = { [weak host] in host?.emit("onPressed") }
+    return host
   }
 }

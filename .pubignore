@@ -2,5 +2,23 @@
 # published pub.dev archive so the package stays lean and user-focused.
 /docs/
 /scripts/
+/.herdr-handoff/
 /AGENTS.md
 /CLAUDE.md
+
+# Local tooling and generated Flutter/Dart output.
+/.dart_tool/
+/.pub/
+/build/
+/coverage/
+/harness.db
+/harness.db-wal
+/harness.db-shm
+
+# The example source is published, but its local dependency/build products are
+# not part of the package contract.
+/example/.dart_tool/
+/example/build/
+/example/ios/Pods/
+/example/ios/.symlinks/
+/example/ios/Flutter/ephemeral/

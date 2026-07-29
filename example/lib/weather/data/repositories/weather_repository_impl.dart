@@ -9,7 +9,7 @@ import '../datasources/weather_remote_data_source.dart';
 
 class WeatherRepositoryImpl implements WeatherRepository {
   WeatherRepositoryImpl({WeatherRemoteDataSource? dataSource})
-      : _dataSource = dataSource ?? WeatherRemoteDataSource();
+    : _dataSource = dataSource ?? WeatherRemoteDataSource();
 
   final WeatherRemoteDataSource _dataSource;
 
@@ -26,8 +26,7 @@ class WeatherRepositoryImpl implements WeatherRepository {
   }
 
   @override
-  Future<Either<Failure, WeatherBundle>> getForecast(
-      Location location) async {
+  Future<Either<Failure, WeatherBundle>> getForecast(Location location) async {
     try {
       final model = await _dataSource.fetchForecast(
         latitude: location.latitude,

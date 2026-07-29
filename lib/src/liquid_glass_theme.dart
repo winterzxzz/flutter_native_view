@@ -1,121 +1,77 @@
 import 'package:flutter/widgets.dart';
 
-/// Default styling for all `liquid_glass_native` widgets in a subtree.
-///
-/// Carried by [LiquidGlassTheme]. Each widget resolves a value as
-/// **explicit parameter ?? theme value ?? built-in default**, so a theme only
-/// fills in what a call site leaves unset and existing code keeps working
-/// unchanged.
+import 'liquid_glass_diagnostics.dart';
+import 'liquid_glass_style.dart';
+
+/// Immutable subtree defaults for custom glass surfaces and system controls.
 @immutable
-class LiquidGlassThemeData {
+final class LiquidGlassThemeData {
   const LiquidGlassThemeData({
-    this.tint,
-    this.borderRadius,
-    this.interactive,
-    this.labelColor,
-    this.iconColor,
-    this.brightness,
-    this.respectAccessibility = true,
+    this.style = const LiquidGlassStyle(),
+    this.controlStyle = const LiquidGlassControlStyle(),
   });
 
-  /// Default glass tint color.
-  final Color? tint;
+  /// Default custom glass material configuration.
+  final LiquidGlassStyle style;
 
-  /// Default corner radius for glass surfaces.
-  final double? borderRadius;
+  /// Default native/Material control configuration.
+  final LiquidGlassControlStyle controlStyle;
 
-  /// Default for whether iOS 26 glass reacts to touch.
-  final bool? interactive;
-
-  /// Default label/foreground color for native text.
-  final Color? labelColor;
-
-  /// Default foreground color for native icons (SF Symbols).
-  final Color? iconColor;
-
-  /// Default light/dark appearance for widgets that support forcing it
-  /// (segmented control, tab bar). When `null`, the system trait is followed.
-  final Brightness? brightness;
-
-  /// When `true` (default), native glass honors the system accessibility
-  /// settings *Reduce Transparency* (renders a solid fill) and *Reduce Motion*
-  /// (drops the interactive touch response).
-  final bool respectAccessibility;
-
-  /// Returns a copy with the given fields replaced.
   LiquidGlassThemeData copyWith({
-    Color? tint,
-    double? borderRadius,
-    bool? interactive,
-    Color? labelColor,
-    Color? iconColor,
-    Brightness? brightness,
-    bool? respectAccessibility,
+    LiquidGlassStyle? style,
+    LiquidGlassControlStyle? controlStyle,
   }) {
     return LiquidGlassThemeData(
-      tint: tint ?? this.tint,
-      borderRadius: borderRadius ?? this.borderRadius,
-      interactive: interactive ?? this.interactive,
-      labelColor: labelColor ?? this.labelColor,
-      iconColor: iconColor ?? this.iconColor,
-      brightness: brightness ?? this.brightness,
-      respectAccessibility: respectAccessibility ?? this.respectAccessibility,
+      style: style ?? this.style,
+      controlStyle: controlStyle ?? this.controlStyle,
     );
   }
 
   @override
   bool operator ==(Object other) =>
       other is LiquidGlassThemeData &&
-      other.tint == tint &&
-      other.borderRadius == borderRadius &&
-      other.interactive == interactive &&
-      other.labelColor == labelColor &&
-      other.iconColor == iconColor &&
-      other.brightness == brightness &&
-      other.respectAccessibility == respectAccessibility;
+      other.style == style &&
+      other.controlStyle == controlStyle;
 
   @override
-  int get hashCode => Object.hash(tint, borderRadius, interactive, labelColor,
-      iconColor, brightness, respectAccessibility);
+  int get hashCode => Object.hash(style, controlStyle);
 }
 
-/// Supplies default [LiquidGlassThemeData] to descendant glass widgets.
+/// Supplies live style defaults and optional diagnostics to descendant controls.
 ///
-/// Place it above your app (e.g. wrapping `MaterialApp.builder` or the home
-/// widget) to set app-wide glass defaults:
-///
-/// ```dart
-/// LiquidGlassTheme(
-///   data: const LiquidGlassThemeData(
-///     tint: Color(0xFF0A84FF),
-///     borderRadius: 16,
-///   ),
-///   child: MyApp(),
-/// )
-/// ```
-///
-/// The theme is read when a widget is built. Changing it after a native view
-/// has been created does not restyle the existing view.
-class LiquidGlassTheme extends InheritedWidget {
+/// Existing native views are synchronized when [data] changes; they are not
+/// recreated.
+class LiquidGlassTheme extends InheritedTheme {
   const LiquidGlassTheme({
     super.key,
     required this.data,
+    this.diagnostics,
     required super.child,
   });
 
-  /// The styling defaults provided to descendants.
   final LiquidGlassThemeData data;
+
+  /// Optional payload-free method-channel instrumentation.
+  final LiquidGlassDiagnostics? diagnostics;
 
   static const LiquidGlassThemeData _default = LiquidGlassThemeData();
 
-  /// The nearest theme data above [context], or a const default when none is
-  /// present. Never returns `null`.
+  /// The nearest theme data, or stable built-in defaults.
   static LiquidGlassThemeData of(BuildContext context) {
-    final LiquidGlassTheme? theme =
-        context.dependOnInheritedWidgetOfExactType<LiquidGlassTheme>();
-    return theme?.data ?? _default;
+    return maybeOf(context)?.data ?? _default;
+  }
+
+  /// The nearest theme wrapper, if one exists.
+  static LiquidGlassTheme? maybeOf(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<LiquidGlassTheme>();
   }
 
   @override
-  bool updateShouldNotify(LiquidGlassTheme oldWidget) => data != oldWidget.data;
+  bool updateShouldNotify(LiquidGlassTheme oldWidget) =>
+      data != oldWidget.data || diagnostics != oldWidget.diagnostics;
+
+  @override
+  Widget wrap(BuildContext context, Widget child) {
+    return LiquidGlassTheme(data: data, diagnostics: diagnostics, child: child);
+  }
 }

@@ -1,70 +1,53 @@
 import Flutter
 import UIKit
 
-public class FlutterNativeViewPlugin: NSObject, FlutterPlugin {
-  static let activityIndicatorViewType = "flutter_native_view/glass_activity_indicator"
-  static let buttonGroupViewType = "flutter_native_view/glass_button_group"
-  static let buttonViewType = "flutter_native_view/glass_button"
-  static let checkboxViewType = "flutter_native_view/glass_checkbox"
-  static let colorPickerViewType = "flutter_native_view/glass_color_picker"
-  static let containerViewType = "flutter_native_view/glass_container"
-  static let datePickerViewType = "flutter_native_view/glass_date_picker"
-  static let iconButtonViewType = "flutter_native_view/glass_icon_button"
-  static let menuViewType = "flutter_native_view/glass_menu"
-  static let progressViewType = "flutter_native_view/glass_progress"
-  static let searchBarViewType = "flutter_native_view/glass_search_bar"
-  static let segmentedViewType = "flutter_native_view/glass_segmented"
-  static let sliderViewType = "flutter_native_view/glass_slider"
-  static let stepperViewType = "flutter_native_view/glass_stepper"
-  static let tabBarViewType = "flutter_native_view/glass_tab_bar"
-  static let textFieldViewType = "flutter_native_view/glass_text_field"
-  static let toggleViewType = "flutter_native_view/glass_toggle"
-  static let toolbarViewType = "flutter_native_view/glass_toolbar"
-
-  /// Strong reference so the presenter (and its method-channel handler) is not
-  /// deallocated after `register` returns. Without this, the channel handler's
-  /// `[weak self]` resolves to nil and every present call silently no-ops.
-  private static var presenter: GlassPresenter?
+public final class FlutterNativeViewPlugin: NSObject, FlutterPlugin {
+  static let buttonViewType = "liquid_glass_native/button"
+  static let buttonGroupViewType = "liquid_glass_native/button_group"
+  static let checkboxViewType = "liquid_glass_native/checkbox"
+  static let colorPickerViewType = "liquid_glass_native/color_picker"
+  static let datePickerViewType = "liquid_glass_native/date_picker"
+  static let menuViewType = "liquid_glass_native/menu"
+  static let segmentedViewType = "liquid_glass_native/segmented"
+  static let sliderViewType = "liquid_glass_native/slider"
+  static let stepperViewType = "liquid_glass_native/stepper"
+  static let textFieldViewType = "liquid_glass_native/text_field"
+  static let toggleViewType = "liquid_glass_native/toggle"
 
   public static func register(with registrar: FlutterPluginRegistrar) {
     let messenger = registrar.messenger()
-    presenter = GlassPresenter(messenger: messenger, viewController: registrar.viewController)
     registrar.register(
-      GlassActivityIndicatorViewFactory(messenger: messenger), withId: activityIndicatorViewType)
+      GlassPlatformViewFactory(messenger: messenger, builder: GlassButtonView.make),
+      withId: buttonViewType)
     registrar.register(
-      GlassButtonGroupViewFactory(messenger: messenger), withId: buttonGroupViewType)
+      GlassPlatformViewFactory(messenger: messenger, builder: GlassButtonGroupView.make),
+      withId: buttonGroupViewType)
     registrar.register(
-      GlassButtonViewFactory(messenger: messenger), withId: buttonViewType)
+      GlassPlatformViewFactory(messenger: messenger, builder: GlassCheckboxView.make),
+      withId: checkboxViewType)
     registrar.register(
-      GlassCheckboxViewFactory(messenger: messenger), withId: checkboxViewType)
+      GlassPlatformViewFactory(messenger: messenger, builder: GlassColorPickerView.make),
+      withId: colorPickerViewType)
     registrar.register(
-      GlassColorPickerViewFactory(messenger: messenger), withId: colorPickerViewType)
+      GlassPlatformViewFactory(messenger: messenger, builder: GlassDatePickerView.make),
+      withId: datePickerViewType)
     registrar.register(
-      GlassContainerViewFactory(messenger: messenger), withId: containerViewType)
+      GlassPlatformViewFactory(messenger: messenger, builder: GlassMenuView.make),
+      withId: menuViewType)
     registrar.register(
-      GlassDatePickerViewFactory(messenger: messenger), withId: datePickerViewType)
+      GlassPlatformViewFactory(messenger: messenger, builder: GlassSegmentedView.make),
+      withId: segmentedViewType)
     registrar.register(
-      GlassIconButtonViewFactory(messenger: messenger), withId: iconButtonViewType)
+      GlassPlatformViewFactory(messenger: messenger, builder: GlassSliderView.make),
+      withId: sliderViewType)
     registrar.register(
-      GlassMenuViewFactory(messenger: messenger), withId: menuViewType)
+      GlassPlatformViewFactory(messenger: messenger, builder: GlassStepperView.make),
+      withId: stepperViewType)
     registrar.register(
-      GlassProgressViewFactory(messenger: messenger), withId: progressViewType)
+      GlassPlatformViewFactory(messenger: messenger, builder: GlassTextFieldView.make),
+      withId: textFieldViewType)
     registrar.register(
-      GlassSearchBarViewFactory(messenger: messenger), withId: searchBarViewType)
-    registrar.register(
-      GlassSegmentedViewFactory(messenger: messenger), withId: segmentedViewType)
-    registrar.register(
-      GlassSliderViewFactory(messenger: messenger), withId: sliderViewType)
-    registrar.register(
-      GlassStepperViewFactory(messenger: messenger), withId: stepperViewType)
-    registrar.register(
-      GlassTabBarViewFactory(messenger: messenger, hostViewController: registrar.viewController),
-      withId: tabBarViewType)
-    registrar.register(
-      GlassTextFieldViewFactory(messenger: messenger), withId: textFieldViewType)
-    registrar.register(
-      GlassToggleViewFactory(messenger: messenger), withId: toggleViewType)
-    registrar.register(
-      GlassToolbarViewFactory(messenger: messenger), withId: toolbarViewType)
+      GlassPlatformViewFactory(messenger: messenger, builder: GlassToggleView.make),
+      withId: toggleViewType)
   }
 }

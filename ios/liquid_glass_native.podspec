@@ -3,11 +3,11 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'liquid_glass_native'
-  s.version          = '0.0.1'
-  s.summary          = 'Native SwiftUI Liquid Glass widgets for Flutter.'
+  s.version          = '1.0.0'
+  s.summary          = 'Authentic SwiftUI Liquid Glass controls for Flutter.'
   s.description      = <<-DESC
-Authentic Apple Liquid Glass controls (button, toggle) rendered by SwiftUI on
-iOS 26+, embedded into Flutter via platform views. Graceful fallback below iOS 26.
+Authentic Apple Liquid Glass controls rendered by SwiftUI on iOS 26+, embedded
+into Flutter with typed configuration and graceful native fallbacks on iOS 15-25.
                        DESC
   s.homepage         = 'https://github.com/winterzxzz/flutter_native_view'
   s.license          = { :file => '../LICENSE' }
@@ -15,10 +15,10 @@ iOS 26+, embedded into Flutter via platform views. Graceful fallback below iOS 2
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.dependency 'Flutter'
-  # glassEffect (iOS 26) is compiled behind #available guards, so a lower
-  # deployment target still installs on older devices.
-  s.platform = :ios, '14.0'
+  # iOS 26 symbols are compiled behind availability guards. iOS 15-25 receive
+  # real SwiftUI controls with deliberate non-glass styling.
+  s.platform = :ios, '15.0'
 
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }
-  s.swift_version = '5.0'
+  s.swift_version = '5.9'
 end

@@ -28,11 +28,11 @@ class ForecastModel {
   final List<DailyForecast> daily;
 
   WeatherBundle toEntity(Location location) => WeatherBundle(
-        location: location,
-        current: current,
-        hourly: hourly,
-        daily: daily,
-      );
+    location: location,
+    current: current,
+    hourly: hourly,
+    daily: daily,
+  );
 
   static CurrentWeather _parseCurrent(Map<String, dynamic> json) {
     return CurrentWeather(
@@ -59,11 +59,13 @@ class ForecastModel {
       if (time.isAfter(cutoff)) break;
       if (time.isBefore(now)) continue;
 
-      forecasts.add(HourlyForecast(
-        time: time,
-        tempC: (temps[i] as num).toDouble(),
-        weatherCode: (codes[i] as num).toInt(),
-      ));
+      forecasts.add(
+        HourlyForecast(
+          time: time,
+          tempC: (temps[i] as num).toDouble(),
+          weatherCode: (codes[i] as num).toInt(),
+        ),
+      );
     }
 
     return forecasts;
@@ -77,12 +79,14 @@ class ForecastModel {
 
     final forecasts = <DailyForecast>[];
     for (var i = 0; i < dates.length; i++) {
-      forecasts.add(DailyForecast(
-        date: DateTime.parse(dates[i] as String),
-        weatherCode: (codes[i] as num).toInt(),
-        maxC: (maxTemps[i] as num).toDouble(),
-        minC: (minTemps[i] as num).toDouble(),
-      ));
+      forecasts.add(
+        DailyForecast(
+          date: DateTime.parse(dates[i] as String),
+          weatherCode: (codes[i] as num).toInt(),
+          maxC: (maxTemps[i] as num).toDouble(),
+          minC: (minTemps[i] as num).toDouble(),
+        ),
+      );
     }
 
     return forecasts;

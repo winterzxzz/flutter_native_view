@@ -1,133 +1,72 @@
 # Architecture
 
-No application stack is selected yet.
+## Selected Stack
 
-No application code exists yet. This document defines generic architecture
-questions and boundary rules that future implementation should adapt after a
-user-provided spec and stack decision exist.
+- Product surface: publishable Flutter plugin plus Flutter example app.
+- Dart: Flutter 3.41 / Dart 3.11.
+- Native adapter: Swift 5.9, SwiftUI/UIKit, CocoaPods.
+- Native deployment: iOS 15+, with iOS 26 Liquid Glass availability gates.
+- Durable Harness records: worktree-local SQLite managed by Harness CLI.
 
-## Discovery Before Shape
+## Module Shape
 
-Before proposing implementation shape, identify:
-
-- Product surfaces: browser, mobile, desktop, CLI, API, worker, or service.
-- Runtime stack: language, framework, database, queues, providers, and hosting.
-- Core domains: the product concepts that deserve stable names and contracts.
-- Boundary inputs: user input, API requests, webhooks, jobs, files, credentials,
-  provider payloads, and environment configuration.
-- Validation ladder: the smallest checks that can prove the selected stack.
-
-Record stack choices in `docs/decisions/` when they meaningfully constrain
-future work.
-
-## Default Layering
+The package is a deep native-control module. Callers learn immutable style
+types and named Flutter widgets. Platform view construction, serialization,
+channel synchronization, unknown native payload parsing, hosting, measurement,
+availability, and teardown remain behind that interface.
 
 ```text
-domain
-  <- application
-      <- infrastructure
-          <- interface
-              <- app surfaces
+public Dart value types and widgets
+  -> private Dart bridge snapshot/lifecycle
+    -> Flutter platform-view seam
+      -> shared Swift parser/host/style infrastructure
+        -> typed native control model and SwiftUI view
 ```
 
-## Candidate Structure
+The seam has two adapters:
 
-```text
-app/
-  domain/
-    entities/
-    value-objects/
-    repositories/
-    services/
+- iOS adapter: `UiKitView` plus SwiftUI native controls.
+- non-iOS adapter: Flutter Material controls.
 
-  application/
-    commands/
-    queries/
-    handlers/
+Customization has two honest capability levels:
 
-  infrastructure/
-    database/
-    logging/
-    notifications/
-
-  interface/
-    controllers/
-    dto/
-    presenters/
-    routes/
-    middlewares/
-
-surfaces/
-  browser/
-  mobile/
-  desktop/
-  cli/
-```
-
-This is a thinking template, not a scaffold. Create real folders only when a
-story enters implementation and the selected stack needs them.
+- Custom glass-surface controls serialize `LiquidGlassStyle` and
+  `LiquidGlassControlStyle`.
+- Standard system controls serialize only `LiquidGlassControlStyle`; their
+  accent is `tintColor`, and Apple owns their shape/material behavior.
 
 ## Dependency Rule
 
-Inner layers must not depend on outer layers.
+- Public widgets may depend on public value types and private Dart bridge code.
+- Public value types do not depend on platform channels.
+- Private Dart bridge code knows serialized field names; callers do not.
+- Swift control models consume `GlassArguments`, never raw channel maps.
+- Control files depend on shared Swift infrastructure; shared infrastructure
+  never depends on one specific control.
 
-| Layer | May depend on | Must not depend on |
-| --- | --- | --- |
-| domain | nothing project-external except tiny pure utilities | framework, database, UI, provider, process/env |
-| application | domain | framework, UI, provider, database concrete clients |
-| infrastructure | domain, application | interface controllers or UI |
-| interface | all backend layers | UI state or platform shell assumptions |
-| app surfaces | API contracts and app-facing clients | domain internals directly |
+## Boundary Contract
 
-## Parse-First Boundary Rule
+Unknown `FlutterStandardMessageCodec` data is parsed by `GlassArguments` before
+it enters a control configuration. Numbers accept `NSNumber` and are clamped or
+defaulted. Public Dart constructors validate programmer-controlled invariants
+before serialization.
 
-Unknown data must be parsed at boundaries before it enters inner code.
+## Lifecycle And Observability
 
-Boundaries include:
+`GlassPlatformViewMixin` owns Dart channel setup and disposal.
+`GlassPlatformViewHost` owns the native channel, hosting controller, view,
+measurement, and teardown. Optional `LiquidGlassDiagnostics` counts operations
+without payloads. See decision `0009-synchronized-platform-view-bridge.md`.
 
-- HTTP request bodies, params, and query strings.
-- Session payloads and identity claims.
-- Environment variables.
-- Database rows returned from external clients.
-- Platform shell payloads.
-- Deep links, tokens, and signed URLs.
-- Provider webhooks, events, and async payloads.
+Controlled native values are optimistic only until the callback frame. The
+tracker suppresses accepted-value echoes but sends the original Dart value back
+when the callback rejects or omits a rebuild. See decision
+`0010-controlled-state-and-capability-contract.md`.
 
-Target flow:
+## Security And Privacy
 
-```text
-unknown input
-  -> parser
-  -> typed DTO or command
-  -> application use case
-  -> domain object/value object
-```
-
-Inner layers should work with meaningful product types such as `UserId`,
-`AccountId`, `WorkspaceId`, `Role`, `DateRange`, or domain-specific IDs,
-rather than repeatedly validating raw strings.
-
-## Command/Query Boundary
-
-If the product has both reads and writes, keep command/query separation clear at
-the code level even when the storage layer is simple:
-
-- Commands mutate state and own audit side effects.
-- Queries read state and format for consumers.
-- Shared domain rules live in domain/application, not controllers.
-
-## Observability Contract
-
-The future server should emit one canonical JSON log line per request with:
-
-- timestamp
-- level
-- request_id
-- user_id when known
-- action
-- duration_ms
-- status_code
-- message
-
-Audit logs are product records. Application logs are operational records. Do not
-use one as a substitute for the other.
+- No dynamic code execution, shell, network, file, or persistence sinks exist.
+- No credentials cross the bridge.
+- Text input values cross the per-view channel by design but are never logged or
+  retained by diagnostics.
+- Invalid bridge fields fail closed to validated defaults or disabled behavior.

@@ -1,196 +1,40 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:liquid_glass_native/liquid_glass_native.dart';
 
-import 'demos/activity_indicator_demo.dart';
-import 'demos/button_demo.dart';
-import 'demos/card_demo.dart';
-import 'demos/color_picker_demo.dart';
-import 'demos/container_demo.dart';
-import 'demos/date_picker_demo.dart';
-import 'demos/menu_demo.dart';
-import 'demos/navigation_bar_demo.dart';
-import 'demos/progress_view_demo.dart';
-import 'demos/search_bar_demo.dart';
-import 'demos/segmented_demo.dart';
-import 'demos/slider_demo.dart';
-import 'demos/stepper_demo.dart';
-import 'demos/switch_demo.dart';
-import 'demos/tab_bar_demo.dart';
-import 'demos/text_field_demo.dart';
-import 'demos/theme_demo.dart';
-import 'demos/toolbar_demo.dart';
-import 'weather/weather_app.dart';
 import 'weather/injection.dart';
-
-typedef DemoBuilder = Widget Function();
-
-class DemoEntry {
-  const DemoEntry(this.title, this.builder, {this.fullScreen = false});
-  final String title;
-  final DemoBuilder builder;
-
-  /// When true, the demo is pushed full-bleed without the [_DemoPage] nav
-  /// chrome (it provides its own navigation, e.g. the Weather App).
-  final bool fullScreen;
-}
-
-final List<DemoEntry> apps = <DemoEntry>[
-  DemoEntry('Weather App', () {
-    configureWeatherDependencies();
-    return const WeatherApp();
-  }, fullScreen: true),
-];
-
-final List<DemoEntry> components = <DemoEntry>[
-  DemoEntry('ActivityIndicator', () => buildActivityIndicatorDemo()),
-  DemoEntry('Buttons', () => const ButtonDemo()),
-  DemoEntry('Card', () => buildCardDemo()),
-  DemoEntry('ColorPicker', () => buildColorPickerDemo()),
-  DemoEntry('Container', () => buildContainerDemo()),
-  DemoEntry('DatePicker', () => buildDatePickerDemo()),
-  DemoEntry('Menu', () => const MenuDemo()),
-  DemoEntry('NavigationBar', () => buildNavigationBarDemo()),
-  DemoEntry('ProgressView', () => buildProgressViewDemo()),
-  DemoEntry('SearchBar', () => const SearchBarDemo()),
-  DemoEntry('SegmentedControl', () => const SegmentedDemo()),
-  DemoEntry('Slider', () => buildSliderDemo()),
-  DemoEntry('Stepper', () => buildStepperDemo()),
-  DemoEntry('Switch', () => const SwitchDemo()),
-  DemoEntry('TabBar', () => buildTabBarDemo()),
-  DemoEntry('TextField', () => buildTextFieldDemo()),
-  DemoEntry('Theme & A11y', () => buildThemeDemo()),
-  DemoEntry('Toolbar', () => buildToolbarDemo()),
-];
-
-final List<DemoEntry> demos = <DemoEntry>[...apps, ...components];
+import 'weather/weather_app.dart';
 
 class Gallery extends StatelessWidget {
   const Gallery({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return LiquidGlassTheme(
-      data: const LiquidGlassThemeData(
-        tint: Color(0xFF6C63FF),
-        borderRadius: 14,
-      ),
-      child: Scaffold(
-        body: DecoratedBox(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF1B1530), Color(0xFF0E1426), Color(0xFF06121A)],
+    return Scaffold(
+      appBar: AppBar(title: const Text('Liquid Glass Native v1')),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: <Widget>[
+          const Text(
+            'Real SwiftUI controls on iOS, stable Material fallbacks elsewhere.',
+          ),
+          const SizedBox(height: 20),
+          _GalleryTile(
+            title: 'V1 control gallery',
+            subtitle: 'Typed styles, live theme changes, and diagnostics',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const _ControlGallery()),
             ),
           ),
-          child: SafeArea(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              children: [
-                const _Header(),
-                const SizedBox(height: 24),
-                const _SectionHeader(title: 'Apps'),
-                const SizedBox(height: 12),
-                ...apps.map(
-                  (entry) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _DemoCard(
-                      title: entry.title,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute<void>(
-                          builder: (_) => entry.fullScreen
-                              ? entry.builder()
-                              : _DemoPage(
-                                  title: entry.title,
-                                  child: entry.builder(),
-                                ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                const _SectionHeader(title: 'Components'),
-                const SizedBox(height: 12),
-                ...components.map(
-                  (entry) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _DemoCard(
-                      title: entry.title,
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute<void>(
-                          builder: (_) => entry.fullScreen
-                              ? entry.builder()
-                              : _DemoPage(
-                                  title: entry.title,
-                                  child: entry.builder(),
-                                ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  const _Header();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 24, left: 4, right: 4),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF6C63FF).withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFF6C63FF).withValues(alpha: 0.4),
-                width: 1.5,
-              ),
-            ),
-            child: const Icon(
-              Icons.layers_outlined,
-              color: Colors.white,
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 14),
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Liquid Glass',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              Text(
-                'Native Apple UI for Flutter',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ],
+          const SizedBox(height: 12),
+          _GalleryTile(
+            title: 'Weather example',
+            subtitle: 'Existing domain example migrated to the v1 controls',
+            onTap: () {
+              configureWeatherDependencies();
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const WeatherApp()),
+              );
+            },
           ),
         ],
       ),
@@ -198,165 +42,259 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _SectionHeader extends StatelessWidget {
+class _GalleryTile extends StatelessWidget {
+  const _GalleryTile({
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
   final String title;
-
-  const _SectionHeader({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title.toUpperCase(),
-            style: const TextStyle(
-              color: Colors.white54,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 1.2,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Container(
-            height: 2,
-            width: 40,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF6C63FF), Colors.transparent],
-              ),
-              borderRadius: BorderRadius.circular(1),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DemoCard extends StatelessWidget {
-  final String title;
+  final String subtitle;
   final VoidCallback onTap;
 
-  const _DemoCard({required this.title, required this.onTap});
-
   @override
   Widget build(BuildContext context) {
-    // Use pure Flutter rendering here — not LiquidGlassContainer (UiKitView).
-    // Platform views inside a recycling ListView get torn down/recreated on
-    // scroll, causing items to flicker and lose their background (the "crack").
-    // A Flutter-rendered glassmorphism look is stable in a scroll view; keep the
-    // native LiquidGlassContainer for one-off, non-recycled surfaces.
-    const Color tint = Color(0xFF6C63FF);
-    final BorderRadius radius = BorderRadius.circular(16);
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: ClipRRect(
-        borderRadius: radius,
-        child: BackdropFilter(
-          // Frosted glass: blurs whatever sits behind the card (the gradient).
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: radius,
-              // Top-down highlight gradient sells the "lit glass" surface.
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withValues(alpha: 0.18),
-                  tint.withValues(alpha: 0.14),
-                  Colors.white.withValues(alpha: 0.04),
-                ],
-              ),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.22),
-                width: 1,
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.16),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.25),
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.chevron_right,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+    return Card(
+      child: ListTile(
+        title: Text(title),
+        subtitle: Text(subtitle),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: onTap,
       ),
     );
   }
 }
 
-class _DemoPage extends StatelessWidget {
-  final String title;
-  final Widget child;
+enum _ForecastPeriod { day, week, month }
 
-  const _DemoPage({required this.title, required this.child});
+class _ControlGallery extends StatefulWidget {
+  const _ControlGallery();
+
+  @override
+  State<_ControlGallery> createState() => _ControlGalleryState();
+}
+
+class _ControlGalleryState extends State<_ControlGallery> {
+  static const Color _purple = Color(0xFF6C63FF);
+  static const Color _blue = Color(0xFF0A84FF);
+
+  late final TextEditingController _searchController;
+  late final LiquidGlassDiagnostics _diagnostics;
+  bool _alternateTheme = false;
+  bool _switchValue = true;
+  bool _checkboxValue = false;
+  double _sliderValue = 0.4;
+  int _stepperValue = 2;
+  _ForecastPeriod _period = _ForecastPeriod.day;
+  DateTime _date = DateTime.now();
+  Color _color = _purple;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+    _diagnostics = LiquidGlassDiagnostics(
+      onEvent: (_) {
+        if (mounted) setState(() {});
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final Color tint = _alternateTheme ? _blue : _color;
+    final LiquidGlassDiagnosticsSnapshot metrics = _diagnostics.snapshot;
     return LiquidGlassTheme(
-      data: const LiquidGlassThemeData(
-        tint: Color(0xFF6C63FF),
-        borderRadius: 14,
-      ),
-      child: Scaffold(
-        body: DecoratedBox(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF1B1530), Color(0xFF0E1426), Color(0xFF06121A)],
-            ),
-          ),
-          child: Column(
-            children: [
-              LiquidGlassNavigationBar(
-                title: title,
-                leading: [
-                  BarAction(
-                    id: 'back',
-                    sfSymbol: 'chevron.left',
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              Expanded(
-                child: SafeArea(top: false, child: Center(child: child)),
-              ),
-            ],
-          ),
+      diagnostics: _diagnostics,
+      data: LiquidGlassThemeData(
+        style: LiquidGlassStyle(
+          tint: tint,
+          shape: const LiquidGlassShape.roundedRectangle(cornerRadius: 16),
+        ),
+        controlStyle: LiquidGlassControlStyle(
+          tintColor: tint,
+          foregroundColor: Colors.white,
         ),
       ),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('V1 controls'),
+          actions: <Widget>[
+            IconButton(
+              tooltip: 'Change live theme',
+              onPressed: () =>
+                  setState(() => _alternateTheme = !_alternateTheme),
+              icon: const Icon(Icons.palette_outlined),
+            ),
+          ],
+        ),
+        body: ListView(
+          padding: const EdgeInsets.all(20),
+          children: <Widget>[
+            Text(
+              'Bridge counts: ${metrics.viewsCreated} views · '
+              '${metrics.configUpdates} updates · '
+              '${metrics.nativeEvents} events · '
+              '${metrics.intrinsicMeasurements} measurements',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 20),
+            const _SectionTitle('Buttons'),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: <Widget>[
+                LiquidGlassButton(
+                  label: 'Continue',
+                  leadingSymbol: const LiquidGlassSymbol(
+                    'arrow.right',
+                    fallbackIcon: Icons.arrow_forward,
+                  ),
+                  onPressed: () {},
+                ),
+                LiquidGlassButton.prominent(label: 'Primary', onPressed: () {}),
+                LiquidGlassButton.icon(
+                  symbol: const LiquidGlassSymbol(
+                    'heart.fill',
+                    fallbackIcon: Icons.favorite,
+                  ),
+                  semanticLabel: 'Favorite',
+                  onPressed: () {},
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            LiquidGlassButtonGroup(
+              items: <LiquidGlassButtonItem>[
+                LiquidGlassButtonItem(
+                  id: 'back',
+                  symbol: const LiquidGlassSymbol(
+                    'chevron.left',
+                    fallbackIcon: Icons.chevron_left,
+                  ),
+                  semanticLabel: 'Back',
+                  onPressed: () {},
+                ),
+                LiquidGlassButtonItem(
+                  id: 'share',
+                  label: 'Share',
+                  symbol: const LiquidGlassSymbol(
+                    'square.and.arrow.up',
+                    fallbackIcon: Icons.ios_share,
+                  ),
+                  onPressed: () {},
+                ),
+              ],
+            ),
+            const SizedBox(height: 28),
+            const _SectionTitle('Controls'),
+            Row(
+              children: <Widget>[
+                LiquidGlassSwitch(
+                  value: _switchValue,
+                  semanticLabel: 'Notifications',
+                  onChanged: (bool value) =>
+                      setState(() => _switchValue = value),
+                ),
+                const SizedBox(width: 20),
+                LiquidGlassCheckbox(
+                  value: _checkboxValue,
+                  semanticLabel: 'Agree to terms',
+                  onChanged: (bool value) =>
+                      setState(() => _checkboxValue = value),
+                ),
+              ],
+            ),
+            LiquidGlassSlider(
+              value: _sliderValue,
+              semanticLabel: 'Volume',
+              onChanged: (double value) => setState(() => _sliderValue = value),
+            ),
+            LiquidGlassStepper(
+              value: _stepperValue,
+              min: 0,
+              max: 10,
+              semanticLabel: 'Guests',
+              onChanged: (int value) => setState(() => _stepperValue = value),
+            ),
+            LiquidGlassSegmentedControl<_ForecastPeriod>(
+              segments: const <LiquidGlassSegment<_ForecastPeriod>>[
+                LiquidGlassSegment(value: _ForecastPeriod.day, label: 'Day'),
+                LiquidGlassSegment(value: _ForecastPeriod.week, label: 'Week'),
+                LiquidGlassSegment(
+                  value: _ForecastPeriod.month,
+                  label: 'Month',
+                ),
+              ],
+              value: _period,
+              onChanged: (_ForecastPeriod value) =>
+                  setState(() => _period = value),
+            ),
+            const SizedBox(height: 28),
+            const _SectionTitle('Input and pickers'),
+            LiquidGlassTextField.search(
+              controller: _searchController,
+              placeholder: 'Search places',
+              onSubmitted: (String value) {},
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: <Widget>[
+                LiquidGlassMenu<_ForecastPeriod>(
+                  label: 'Period',
+                  items: const <LiquidGlassMenuItem<_ForecastPeriod>>[
+                    LiquidGlassMenuItem(
+                      value: _ForecastPeriod.day,
+                      label: 'Day',
+                    ),
+                    LiquidGlassMenuItem(
+                      value: _ForecastPeriod.week,
+                      label: 'Week',
+                    ),
+                    LiquidGlassMenuItem(
+                      value: _ForecastPeriod.month,
+                      label: 'Month',
+                    ),
+                  ],
+                  onSelected: (_ForecastPeriod value) =>
+                      setState(() => _period = value),
+                ),
+                LiquidGlassDatePicker(
+                  value: _date,
+                  onChanged: (DateTime value) => setState(() => _date = value),
+                ),
+                LiquidGlassColorPicker(
+                  value: _color,
+                  onChanged: (Color value) => setState(() => _color = value),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(text, style: Theme.of(context).textTheme.titleMedium),
     );
   }
 }

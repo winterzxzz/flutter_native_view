@@ -2,106 +2,161 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'glass_platform_view.dart';
-import 'liquid_glass_theme.dart';
+import 'liquid_glass_style.dart';
 
-const String _kSegmentedViewType = 'flutter_native_view/glass_segmented';
+const String _kSegmentedViewType = 'liquid_glass_native/segmented';
 
-/// A native iOS segmented control (`UISegmentedControl`) with Liquid Glass
-/// styling on iOS 26+. On non-iOS platforms it falls back to a Material
-/// [SegmentedButton].
-///
-/// This is a controlled widget: pass [selectedIndex] in and update your state
-/// from [onChanged].
-class LiquidGlassSegmentedControl extends StatefulWidget {
+/// A typed selectable segment.
+@immutable
+final class LiquidGlassSegment<T> {
+  const LiquidGlassSegment({
+    required this.value,
+    required this.label,
+    this.symbol,
+  }) : assert(label.length > 0);
+
+  final T value;
+  final String label;
+  final LiquidGlassSymbol? symbol;
+}
+
+/// A typed, controlled system segmented control.
+class LiquidGlassSegmentedControl<T> extends StatefulWidget {
   const LiquidGlassSegmentedControl({
     super.key,
     required this.segments,
-    required this.selectedIndex,
+    required this.value,
     required this.onChanged,
-    this.tint,
-    this.brightness,
-  });
+    this.controlStyle,
+    this.semanticLabel,
+  }) : assert(segments.length > 1);
 
-  /// Ordered segment titles.
-  final List<String> segments;
-
-  /// Index into [segments] of the currently selected segment.
-  final int selectedIndex;
-
-  /// Called with the index of the newly selected segment.
-  final ValueChanged<int> onChanged;
-
-  /// Optional tint color for the selected segment. Falls back to the
-  /// [LiquidGlassTheme] tint.
-  final Color? tint;
-
-  /// Forces the control's light/dark appearance instead of following the
-  /// device system trait. When `null`, falls back to the [LiquidGlassTheme]
-  /// brightness, otherwise the system trait is used.
-  final Brightness? brightness;
+  final List<LiquidGlassSegment<T>> segments;
+  final T value;
+  final ValueChanged<T>? onChanged;
+  final LiquidGlassControlStyle? controlStyle;
+  final String? semanticLabel;
 
   @override
-  State<LiquidGlassSegmentedControl> createState() =>
-      _LiquidGlassSegmentedControlState();
+  State<LiquidGlassSegmentedControl<T>> createState() =>
+      _LiquidGlassSegmentedControlState<T>();
 }
 
-class _LiquidGlassSegmentedControlState
-    extends State<LiquidGlassSegmentedControl>
-    with GlassPlatformViewMixin<LiquidGlassSegmentedControl> {
+class _LiquidGlassSegmentedControlState<T>
+    extends State<LiquidGlassSegmentedControl<T>>
+    with GlassPlatformViewMixin<LiquidGlassSegmentedControl<T>> {
   @override
   String get glassViewType => _kSegmentedViewType;
 
   @override
   bool get measuresSize => true;
 
-  Brightness? get _brightness =>
-      widget.brightness ?? LiquidGlassTheme.of(context).brightness;
+  int get _selectedIndex => widget.segments.indexWhere(
+    (LiquidGlassSegment<T> segment) => segment.value == widget.value,
+  );
+
+  void _debugValidate() {
+    assert(() {
+      if (_selectedIndex < 0) {
+        throw FlutterError(
+          'LiquidGlassSegmentedControl.value must match one segment value.',
+        );
+      }
+      final Set<T> values = widget.segments
+          .map((LiquidGlassSegment<T> segment) => segment.value)
+          .toSet();
+      if (values.length != widget.segments.length) {
+        throw FlutterError(
+          'LiquidGlassSegmentedControl segment values must be unique.',
+        );
+      }
+      return true;
+    }());
+  }
 
   @override
-  Map<String, dynamic> buildParams() {
-    final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
-    return <String, dynamic>{
-      'segments': widget.segments,
-      'selectedIndex': widget.selectedIndex,
-      'tint': (widget.tint ?? t.tint)?.toARGB32(),
-      'brightness': _brightness?.name,
-      'respectAccessibility': t.respectAccessibility,
+  Map<String, Object?> buildParams() {
+    _debugValidate();
+    final LiquidGlassControlStyle control = resolveControlStyle(
+      context,
+      widget.controlStyle,
+    );
+    return <String, Object?>{
+      'segments': widget.segments
+          .map(
+            (LiquidGlassSegment<T> segment) => <String, Object?>{
+              'label': segment.label,
+              'symbol': segment.symbol?.name,
+            },
+          )
+          .toList(growable: false),
+      'selectedIndex': _selectedIndex,
+      'enabled': widget.onChanged != null,
+      'accessibilityLabel': widget.semanticLabel,
+      ...encodeControlStyle(control),
     };
   }
 
   @override
-  Future<dynamic> handleCall(MethodCall call) async {
-    if (call.method == 'onIndexChanged') {
-      widget.onChanged((call.arguments as num).toInt());
+  Future<Object?> handleCall(MethodCall call) async {
+    if (call.method == 'onChanged' && call.arguments is num) {
+      final int index = (call.arguments as num).toInt();
+      if (index >= 0 && index < widget.segments.length) {
+        dispatchControlledNativeState(<String, Object?>{
+          'selectedIndex': index,
+        }, () => widget.onChanged?.call(widget.segments[index].value));
+      }
     }
     return null;
   }
 
   @override
-  void didUpdateWidget(LiquidGlassSegmentedControl oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    syncConfig();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    _debugValidate();
+    final LiquidGlassControlStyle control = resolveControlStyle(
+      context,
+      widget.controlStyle,
+    );
     if (!isGlassPlatform) {
-      final Widget control = SegmentedButton<String>(
-        segments: widget.segments
-            .map((String s) => ButtonSegment<String>(value: s, label: Text(s)))
-            .toList(),
-        selected: <String>{widget.segments[widget.selectedIndex]},
-        onSelectionChanged: (Set<String> sel) {
-          final int idx = widget.segments.indexOf(sel.first);
-          if (idx >= 0) widget.onChanged(idx);
-        },
+      final Widget segmented = SegmentedButton<int>(
+        segments: <ButtonSegment<int>>[
+          for (var index = 0; index < widget.segments.length; index++)
+            ButtonSegment<int>(
+              value: index,
+              label: Text(widget.segments[index].label),
+              icon: widget.segments[index].symbol?.fallbackIcon == null
+                  ? null
+                  : Icon(widget.segments[index].symbol!.fallbackIcon),
+            ),
+        ],
+        selected: <int>{_selectedIndex},
+        onSelectionChanged: widget.onChanged == null
+            ? null
+            : (Set<int> selected) {
+                widget.onChanged!(widget.segments[selected.first].value);
+              },
+        style: ButtonStyle(
+          foregroundColor: WidgetStatePropertyAll<Color?>(
+            control.foregroundColor,
+          ),
+          backgroundColor: WidgetStateProperty.resolveWith<Color?>((states) {
+            return states.contains(WidgetState.selected)
+                ? control.tintColor
+                : null;
+          }),
+          minimumSize: WidgetStatePropertyAll<Size>(
+            Size(0, control.size.minimumDimension),
+          ),
+        ),
       );
-      final Brightness? b = _brightness;
-      if (b == null) return control;
-      return Theme(data: ThemeData(brightness: b), child: control);
+      return applyFallbackControlStyle(
+        child: segmented,
+        controlStyle: control,
+        enabled: widget.onChanged != null,
+      );
     }
     return glassView(
-      estimatedSize: const Size(200, 32),
+      estimatedSize: Size(220, control.size.minimumDimension),
       gesture: GlassGesture.eager,
     );
   }

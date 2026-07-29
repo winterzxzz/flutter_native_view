@@ -2,153 +2,104 @@ import Flutter
 import SwiftUI
 import UIKit
 
-// MARK: - Factory
+private struct GlassSegmentItem: Identifiable {
+  let id: Int
+  let label: String
+  let symbol: String?
+}
 
-final class GlassSegmentedViewFactory: NSObject, FlutterPlatformViewFactory {
-  private let messenger: FlutterBinaryMessenger
-  init(messenger: FlutterBinaryMessenger) {
-    self.messenger = messenger
-    super.init()
-  }
-  func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol {
-    FlutterStandardMessageCodec.sharedInstance()
-  }
-  func create(withFrame frame: CGRect, viewIdentifier viewId: Int64, arguments args: Any?)
-    -> FlutterPlatformView
-  {
-    GlassSegmentedPlatformView(
-      frame: frame, viewId: viewId,
-      args: args as? [String: Any] ?? [:], messenger: messenger)
+private struct GlassSegmentedConfiguration {
+  let segments: [GlassSegmentItem]
+  var selectedIndex: Int
+  let enabled: Bool
+  let accessibilityLabel: String?
+  let controlStyle: GlassControlStyleConfiguration
+
+  init(arguments: GlassArguments) {
+    segments = arguments.items("segments").enumerated().map { index, item in
+      GlassSegmentItem(
+        id: index,
+        label: item.string("label", default: ""),
+        symbol: item.string("symbol"))
+    }
+    selectedIndex = max(
+      0,
+      min(arguments.int("selectedIndex", default: 0), max(segments.count - 1, 0)))
+    enabled = arguments.bool("enabled", default: true)
+    accessibilityLabel = arguments.string("accessibilityLabel")
+    controlStyle = GlassControlStyleConfiguration(arguments: arguments)
   }
 }
 
-// MARK: - Platform view
+private final class GlassSegmentedModel: ObservableObject {
+  @Published var configuration: GlassSegmentedConfiguration
+  var onChanged: ((Int) -> Void)?
 
-final class GlassSegmentedPlatformView: NSObject, FlutterPlatformView {
-  private let container = UIView()
-  private let channel: FlutterMethodChannel
-  private let model: GlassSegmentedModel
-  private var host: UIViewController?
-
-  init(frame: CGRect, viewId: Int64, args: [String: Any], messenger: FlutterBinaryMessenger) {
-    channel = FlutterMethodChannel(
-      name: "\(FlutterNativeViewPlugin.segmentedViewType)/\(viewId)", binaryMessenger: messenger)
-    model = GlassSegmentedModel(args: args)
-    container.backgroundColor = .clear
-    container.overrideUserInterfaceStyle = model.interfaceStyle
-
-    super.init()
-
-    model.onIndexChanged = { [weak channel] index in
-      channel?.invokeMethod("onIndexChanged", arguments: index)
-    }
-
-    if #available(iOS 16.0, *) {
-      let hosting = UIHostingController(rootView: GlassSegmentedRoot(model: model))
-      hosting.view.backgroundColor = .clear
-      hosting.overrideUserInterfaceStyle = model.interfaceStyle
-      hosting.view.frame = container.bounds
-      hosting.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-      container.addSubview(hosting.view)
-      host = hosting
-    }
-
-    channel.setMethodCallHandler { [weak self] call, result in
-      guard let self = self else { result(nil); return }
-      switch call.method {
-      case "getIntrinsicSize":
-        result(self.intrinsicSize())
-      case "updateConfig":
-        self.model.apply(args: call.arguments as? [String: Any] ?? [:])
-        self.container.overrideUserInterfaceStyle = self.model.interfaceStyle
-        self.host?.overrideUserInterfaceStyle = self.model.interfaceStyle
-        DispatchQueue.main.async { result(self.intrinsicSize()) }
-      default:
-        result(FlutterMethodNotImplemented)
-      }
-    }
+  init(arguments: GlassArguments) {
+    configuration = GlassSegmentedConfiguration(arguments: arguments)
   }
 
-  private func intrinsicSize() -> [String: Double] {
-    guard let host = host else { return ["width": 200, "height": 32] }
-    // Use the hosting controller's ideal sizing; .compressedSize truncates SwiftUI
-    // Text to zero width, which makes labels disappear.
-    let unbounded = CGSize(
-      width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
-    if #available(iOS 16.0, *), let hosting = host as? UIHostingController<GlassSegmentedRoot> {
-      let size = hosting.sizeThatFits(in: unbounded)
-      return ["width": Double(ceil(size.width)), "height": Double(ceil(size.height))]
-    }
-    let view = host.view!
-    view.setNeedsLayout()
-    view.layoutIfNeeded()
-    let size = view.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
-    return ["width": Double(size.width), "height": Double(size.height)]
+  func apply(_ arguments: GlassArguments) {
+    configuration = GlassSegmentedConfiguration(arguments: arguments)
   }
 
-  func view() -> UIView { container }
-}
-
-// MARK: - SwiftUI
-
-final class GlassSegmentedModel: ObservableObject {
-  @Published var segments: [String]
-  @Published var selectedIndex: Int
-  @Published var tint: UIColor?
-  var brightness: String?
-  var onIndexChanged: ((Int) -> Void)?
-
-  init(args: [String: Any]) {
-    segments = args["segments"] as? [String] ?? ["A", "B"]
-    selectedIndex = args["selectedIndex"] as? Int ?? 0
-    tint = GlassColor.fromARGB(args["tint"] as? Int)
-    brightness = args["brightness"] as? String
-  }
-
-  func apply(args: [String: Any]) {
-    segments = args["segments"] as? [String] ?? segments
-    selectedIndex = args["selectedIndex"] as? Int ?? selectedIndex
-    tint = GlassColor.fromARGB(args["tint"] as? Int)
-    brightness = args["brightness"] as? String
-  }
-
-  /// Maps a Flutter `Brightness` name to a UIKit interface style.
-  var interfaceStyle: UIUserInterfaceStyle {
-    switch brightness {
-    case "light": return .light
-    case "dark": return .dark
-    default: return .unspecified
-    }
+  func setIndex(_ index: Int) {
+    configuration.selectedIndex = index
+    onChanged?(index)
   }
 }
 
-@available(iOS 16.0, *)
-struct GlassSegmentedRoot: View {
+@available(iOS 15.0, *)
+private struct GlassSegmentedRoot: View {
   @ObservedObject var model: GlassSegmentedModel
 
   var body: some View {
-    if #available(iOS 26.0, *) {
-      Picker("", selection: $model.selectedIndex) {
-        ForEach(Array(model.segments.enumerated()), id: \.offset) { index, label in
-          Text(label).tag(index)
+    Picker(
+      "",
+      selection: Binding(
+        get: { model.configuration.selectedIndex },
+        set: model.setIndex)
+    ) {
+      ForEach(model.configuration.segments) { segment in
+        if let symbol = segment.symbol {
+          Label(segment.label, systemImage: symbol).tag(segment.id)
+        } else {
+          Text(segment.label).tag(segment.id)
         }
-      }
-      .pickerStyle(.segmented)
-      .tint(model.tint.map { Color(uiColor: $0) })
-      .onChange(of: model.selectedIndex) { newValue in
-        model.onIndexChanged?(newValue)
-      }
-    } else {
-      Picker("", selection: $model.selectedIndex) {
-        ForEach(Array(model.segments.enumerated()), id: \.offset) { index, label in
-          Text(label).tag(index)
-        }
-      }
-      .pickerStyle(.segmented)
-      .tint(model.tint.map { Color(uiColor: $0) })
-      .onChange(of: model.selectedIndex) { newValue in
-        model.onIndexChanged?(newValue)
       }
     }
+    .pickerStyle(.segmented)
+    .tint(model.configuration.controlStyle.tintColor.map { Color(uiColor: $0) })
+    .modifier(GlassControlStyleModifier(style: model.configuration.controlStyle))
+    .disabled(!model.configuration.enabled)
+    .opacity(
+      model.configuration.enabled ? 1 : model.configuration.controlStyle.disabledOpacity)
+    .accessibilityLabel(
+      model.configuration.accessibilityLabel.map(Text.init) ?? Text("Options"))
+  }
+}
+
+enum GlassSegmentedView {
+  static func make(
+    frame: CGRect,
+    viewId: Int64,
+    arguments: GlassArguments,
+    messenger: FlutterBinaryMessenger
+  ) -> FlutterPlatformView {
+    let model = GlassSegmentedModel(arguments: arguments)
+    let host = GlassPlatformViewHost(
+      frame: frame,
+      viewType: FlutterNativeViewPlugin.segmentedViewType,
+      viewId: viewId,
+      messenger: messenger,
+      rootView: AnyView(GlassSegmentedRoot(model: model)),
+      fallbackSize: CGSize(width: 220, height: 44),
+      onUpdate: { [weak model] next in
+        model?.apply(next)
+        return true
+      })
+    host.applyInterfaceStyle(arguments)
+    model.onChanged = { [weak host] index in host?.emit("onChanged", arguments: index) }
+    return host
   }
 }

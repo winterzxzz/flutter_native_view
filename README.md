@@ -1,113 +1,236 @@
 # liquid_glass_native
 
-**Native Apple Liquid Glass UI for Flutter** — real SwiftUI/UIKit glass widgets,
-not a `BackdropFilter` blur fake. Controls are rendered by SwiftUI and embedded
-via platform views, so on **iOS 26+** they use Apple's authentic `glassEffect`
-material (interactive, with `GlassEffectContainer`). Older iOS and other
-platforms fall back gracefully.
+Authentic SwiftUI Liquid Glass controls for Flutter.
 
-> Keywords: liquid glass, iOS 26, SwiftUI, Cupertino, native platform view,
-> glassmorphism, glass UI kit, Apple design.
+`liquid_glass_native` embeds real native control content through `UiKitView`.
+On iOS 26+, buttons use Apple's system glass button styles and custom controls
+use `glassEffect` with native SwiftUI content. iOS 15–25 custom surfaces use
+SwiftUI material fallbacks, and non-iOS platforms receive Material controls.
 
-## Why native
+This is a native control library. It does not claim that an empty native glass
+surface can authentically wrap an arbitrary Flutter widget tree.
 
-Apple's Liquid Glass samples the real native render tree and reacts to touch.
-Faking it with a Flutter `BackdropFilter` looks flat, because the glass needs to
-wrap **real native content**. Here the label/switch are rendered natively, so the
-material looks like the system glass.
+## Requirements
 
-## Widgets
+- Flutter 3.41 / Dart 3.11 or newer.
+- iOS deployment target 15.0 or newer.
+- Xcode with the iOS 26 SDK to compile Liquid Glass symbols.
+- An iOS 26 simulator or device to visually verify the actual material.
 
-| Widget | Notes |
-| --- | --- |
-| `LiquidGlassActivityIndicator` | Native SwiftUI `ProgressView(.circular)`. Fixed size. |
-| `LiquidGlassButton` / `.heading` | Native button; `label` rendered in SwiftUI. Auto-sizes via an intrinsic-size handshake. |
-| `LiquidGlassButtonGroup` | Row of glass buttons sharing one `GlassEffectContainer`. |
-| `LiquidGlassCard` | Glass surface with padding, rounded clip, and optional `onTap`. |
-| `LiquidGlassCheckbox` | Native glass checkbox; shows a checkmark when checked. |
-| `LiquidGlassColorPicker` | Native SwiftUI `ColorPicker`. Intrinsic size. |
-| `LiquidGlassContainer` | Glass panel; pass a `child` to layer content on the glass. |
-| `LiquidGlassDatePicker` | Native SwiftUI `DatePicker`. Intrinsic size, eager gesture. |
-| `LiquidGlassIconButton` | Native icon-only glass button (SF Symbol). |
-| `LiquidGlassLabeledSwitch` | A label + `LiquidGlassSwitch` setting row. |
-| `LiquidGlassMenu` | Native pull-down menu button. |
-| `LiquidGlassNavigationBar` | Native top bar with title + leading/trailing actions. |
-| `LiquidGlassProgressView` | Native linear `ProgressView`. Parent width, fixed height. |
-| `LiquidGlassSearchBar` | Native search field. Parent width, fixed height. |
-| `LiquidGlassSegmentedControl` | Native segmented control. |
-| `LiquidGlassSlider` | Native SwiftUI `Slider`. Parent width, fixed height, eager gesture. |
-| `LiquidGlassStepper` | Native SwiftUI `Stepper`. Auto-sizes via intrinsic-size handshake. |
-| `LiquidGlassSwitch` | Native SwiftUI `Toggle`; state bridged back to Dart. |
-| `LiquidGlassTabBar` | Native tab bar; per-tab `badge`, search accessory, minimize-on-scroll. |
-| `LiquidGlassTextField` | Native glass text input; placeholder, secure entry. |
-| `LiquidGlassToolbar` | Native bottom toolbar with action buttons. |
+## Install
 
-Modals (`LiquidGlassSheet`, `LiquidGlassAlert`, `LiquidGlassPopover`) are
-presented natively via the shared presenter.
+```yaml
+dependencies:
+  liquid_glass_native: ^1.0.0
+```
 
-## Theming & accessibility
+```dart
+import 'package:liquid_glass_native/liquid_glass_native.dart';
+```
 
-Wrap your app in a `LiquidGlassTheme` to set app-wide defaults; each widget
-resolves a value as **explicit param ?? theme ?? built-in default**:
+## Theme, style, and shape
+
+The v1 interface has one immutable styling vocabulary:
 
 ```dart
 LiquidGlassTheme(
-  data: const LiquidGlassThemeData(tint: Color(0xFF0A84FF), borderRadius: 16),
+  data: const LiquidGlassThemeData(
+    style: LiquidGlassStyle(
+      variant: LiquidGlassVariant.regular,
+      tint: Color(0xFF0A84FF),
+      shape: LiquidGlassShape.roundedRectangle(cornerRadius: 16),
+      interactive: true,
+    ),
+    controlStyle: LiquidGlassControlStyle(
+      tintColor: Color(0xFF0A84FF),
+      foregroundColor: Colors.white,
+      size: LiquidGlassControlSize.regular,
+    ),
+  ),
   child: MyApp(),
 );
 ```
 
-When `respectAccessibility` is on (the default), native glass honors the system
-*Reduce Transparency* (opaque surface) and *Reduce Motion* (no interactive
-touch response) settings.
+Mounted native controls update when the theme changes; they are not recreated.
+Pass `style` to a glass-surfaced widget or `controlStyle` to any control to
+replace its themed value. Use `copyWith` to derive a local variation; its
+`clearTintColor`, `clearForegroundColor`, and `clearBrightness` flags remove
+nullable values. Standard system controls intentionally do not accept
+`LiquidGlassStyle`; their system accent belongs in
+`LiquidGlassControlStyle.tintColor`.
 
-## Usage
+Accessibility is always honored. Reduce Transparency uses a fully opaque
+custom surface even if the tint has alpha below one, and Reduce Motion
+suppresses explicitly interactive custom glass. System controls preserve their
+native accessibility behavior.
+
+## Buttons and symbols
+
+`LiquidGlassSymbol` pairs an SF Symbol with a Material fallback icon:
 
 ```dart
-import 'package:liquid_glass_native/liquid_glass_native.dart';
-
 LiquidGlassButton(
-  label: 'Add',
+  label: 'Continue',
+  leadingSymbol: const LiquidGlassSymbol(
+    'arrow.right',
+    fallbackIcon: Icons.arrow_forward,
+  ),
   onPressed: () {},
-  tint: Colors.blue,          // optional
-  // borderRadius: 16,        // optional; capsule when null
 );
 
-LiquidGlassButton.heading(label: 'Glass Todos', onPressed: () {});
+LiquidGlassButton.prominent(label: 'Purchase', onPressed: () {});
 
-LiquidGlassSwitch(
-  value: on,
-  onChanged: (v) => setState(() => on = v),
+LiquidGlassButton.icon(
+  symbol: const LiquidGlassSymbol(
+    'heart.fill',
+    fallbackIcon: Icons.favorite,
+  ),
+  semanticLabel: 'Favorite',
+  onPressed: () {},
 );
 ```
 
-## Platform behaviour
+Use one `LiquidGlassButtonGroup` for related actions. It owns one platform view
+and one native `GlassEffectContainer`, rather than one platform view per button.
 
-- **iOS 26+** — authentic Liquid Glass (`glassEffect(.regular.interactive())`).
-- **iOS 16–25** — standard SwiftUI button / toggle styling.
-- **iOS 14–15** — system controls.
-- **Non-iOS** — Material `FilledButton` / `Switch` fallbacks.
+## Typed controls
 
-## How it works
+```dart
+LiquidGlassSwitch(
+  value: enabled,
+  controlStyle: const LiquidGlassControlStyle(tintColor: Colors.green),
+  onChanged: (value) => setState(() => enabled = value),
+);
 
-- Each widget is a `UiKitView`. The iOS plugin registers a
-  `FlutterPlatformViewFactory` per control.
-- A per-view `FlutterMethodChannel` (`<viewType>/<id>`) carries events
-  (`onPressed`, `onChanged`) and updates (`updateConfig`, `setValue`).
-- Buttons negotiate their size: native replies to `getIntrinsicSize`, and Flutter
-  wraps the platform view in a matching `SizedBox`.
+LiquidGlassSlider(
+  value: volume,
+  min: 0,
+  max: 1,
+  onChanged: (value) => setState(() => volume = value),
+);
 
-## Requirements
+LiquidGlassSegmentedControl<Period>(
+  segments: const [
+    LiquidGlassSegment(value: Period.day, label: 'Day'),
+    LiquidGlassSegment(value: Period.week, label: 'Week'),
+  ],
+  value: period,
+  onChanged: (value) => setState(() => period = value),
+);
+```
 
-- Xcode with the **iOS 26 SDK** (to compile `glassEffect`, guarded by
-  `#available`). The deployment target stays at 14.0.
+Retained v1 controls are:
 
-## Run the example
+- `LiquidGlassButton` and `LiquidGlassButtonGroup`
+- `LiquidGlassSwitch` and `LiquidGlassCheckbox`
+- `LiquidGlassSlider` and `LiquidGlassStepper`
+- `LiquidGlassSegmentedControl<T>`
+- `LiquidGlassTextField` and `LiquidGlassTextField.search`
+- `LiquidGlassMenu<T>`
+- `LiquidGlassDatePicker`
+- `LiquidGlassColorPicker`
+
+Callbacks may be null where disabling is meaningful. Constructors validate
+ranges, bounds, selection membership, stable IDs, and other programmer
+invariants before values cross the native boundary.
+
+## Stable text input
+
+Text fields use a persistent `TextEditingController` instead of recreating a
+controller during `build`:
+
+```dart
+final controller = TextEditingController();
+
+LiquidGlassTextField.search(
+  controller: controller,
+  placeholder: 'Search places',
+  onSubmitted: search,
+);
+```
+
+`LiquidGlassTextInputConfiguration` provides typed keyboard, capitalization,
+submit-action, and one combined autocorrection/suggestion setting. SwiftUI 15
+does not expose authoritative selection or composing ranges; native text edits
+map the current Flutter ranges through the text delta instead of collapsing
+them, while Dart-originated selection-only changes are not sent to native.
+
+## Performance and diagnostics
+
+Every standalone native control costs one platform view, one hosting
+controller, and one per-view channel. Avoid large numbers of platform views in
+recycling or rapidly scrolling lists. Prefer `LiquidGlassButtonGroup` for
+related actions.
+
+Deterministic traffic instrumentation is available without retaining payloads:
+
+```dart
+final diagnostics = LiquidGlassDiagnostics();
+
+LiquidGlassTheme(
+  data: const LiquidGlassThemeData(),
+  diagnostics: diagnostics,
+  child: const App(),
+);
+
+final snapshot = diagnostics.snapshot;
+print(snapshot.configUpdates);
+```
+
+Equal nested snapshots send no update. Multiple changes in one Flutter frame
+coalesce into at most one `updateConfig` call per view. A native value is
+optimistically accepted before the callback: if the parent rebuilds with that
+value, no echo is sent; if the callback rejects it or does not rebuild, the
+authoritative Dart value is sent back after the frame.
+
+These counters prove channel behavior only. They do not measure frame time,
+GPU time, memory, energy, or visual correctness; use Instruments and an iOS 26
+runtime for those claims.
+
+## Migration from 0.1.x
+
+v1 intentionally contains breaking changes:
+
+| Pre-v1 | v1 |
+| --- | --- |
+| `LiquidGlassButton.heading` | `LiquidGlassButton.prominent` |
+| `LiquidGlassIconButton` | `LiquidGlassButton.icon` |
+| `GroupButton` / `buttons:` | `LiquidGlassButtonItem` / `items:` |
+| `LiquidGlassSearchBar` | `LiquidGlassTextField.search` with a stable controller |
+| `LiquidGlassTextField(text: value)` | a stable `controller:` for owned state, or `initialValue:` for initial text |
+| date `min` / `max` / string `mode` | `minimumDate` / `maximumDate` / typed `LiquidGlassDatePickerComponents` |
+| indexed string segments | `LiquidGlassSegment<T>` and a typed selected value |
+| string-ID menu selections | `LiquidGlassMenuItem<T>` and typed values |
+| `tint` on custom glass-surface controls | `LiquidGlassStyle.tint` |
+| `tint` on switch/slider/stepper/segmented/date/color controls | `LiquidGlassControlStyle.tintColor` |
+| `borderRadius` / `interactive` | `LiquidGlassStyle.shape` / `.interactive` on glass-surface controls only |
+| foreground / brightness / semantic size | `LiquidGlassControlStyle` |
+| text/slider `height`, switch `width`/`height`, checkbox `size` | `LiquidGlassControlStyle.size`; use `SizedBox` or other Flutter constraints for outer layout |
+
+Standard system controls no longer accept a `style:` argument. This avoids
+silently ignoring glass variant, shape, or interactivity on Apple controls
+whose appearance is system-owned.
+
+The following interfaces were retired rather than wrapped:
+
+- `LiquidGlassContainer`, `LiquidGlassCard`, `LiquidGlassLabeledSwitch`
+- `LiquidGlassActivityIndicator`, `LiquidGlassProgressView`
+- `LiquidGlassNavigationBar`, `LiquidGlassTabBar`, `LiquidGlassToolbar`
+- `LiquidGlassPresenter`, `LiquidGlassSheet`, `LiquidGlassAlert`,
+  `LiquidGlassPopover`
+
+Use Flutter layout/navigation/progress primitives for those roles. They were
+removed because the old modules were shallow, hard-coded, expensive, or could
+not satisfy an authentic native-content promise.
+
+## Example and verification
 
 ```sh
 cd example
 flutter run
 ```
 
-See `docs/superpowers/specs/2026-06-24-liquid-glass-plugin-design.md` for the
-design history (native → Flutter shader → back to native).
+The example contains the v1 control gallery, live theme changes, diagnostics,
+and the preserved weather sample. The repository's durable product, migration,
+architecture, and validation records live under `docs/` and are intentionally
+excluded from the pub.dev archive.

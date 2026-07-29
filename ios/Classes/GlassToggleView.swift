@@ -2,106 +2,80 @@ import Flutter
 import SwiftUI
 import UIKit
 
-// MARK: - Factory
+private struct GlassToggleConfiguration {
+  var value: Bool
+  let enabled: Bool
+  let accessibilityLabel: String?
+  let controlStyle: GlassControlStyleConfiguration
 
-final class GlassToggleViewFactory: NSObject, FlutterPlatformViewFactory {
-  private let messenger: FlutterBinaryMessenger
-  init(messenger: FlutterBinaryMessenger) {
-    self.messenger = messenger
-    super.init()
-  }
-  func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol {
-    FlutterStandardMessageCodec.sharedInstance()
-  }
-  func create(withFrame frame: CGRect, viewIdentifier viewId: Int64, arguments args: Any?)
-    -> FlutterPlatformView
-  {
-    GlassTogglePlatformView(
-      frame: frame, viewId: viewId,
-      args: args as? [String: Any] ?? [:], messenger: messenger)
+  init(arguments: GlassArguments) {
+    value = arguments.bool("value")
+    enabled = arguments.bool("enabled", default: true)
+    accessibilityLabel = arguments.string("accessibilityLabel")
+    controlStyle = GlassControlStyleConfiguration(arguments: arguments)
   }
 }
 
-// MARK: - Platform view
-
-final class GlassTogglePlatformView: NSObject, FlutterPlatformView {
-  private let container = UIView()
-  private let channel: FlutterMethodChannel
-  private let model: GlassToggleModel
-  private var host: UIViewController?
-
-  init(frame: CGRect, viewId: Int64, args: [String: Any], messenger: FlutterBinaryMessenger) {
-    channel = FlutterMethodChannel(
-      name: "\(FlutterNativeViewPlugin.toggleViewType)/\(viewId)", binaryMessenger: messenger)
-    model = GlassToggleModel(args: args)
-    container.backgroundColor = .clear
-
-    super.init()
-
-    model.onChanged = { [weak channel] value in
-      channel?.invokeMethod("onChanged", arguments: value)
-    }
-
-    if #available(iOS 16.0, *) {
-      let hosting = UIHostingController(rootView: GlassToggleRoot(model: model))
-      hosting.view.backgroundColor = .clear
-      hosting.view.frame = container.bounds
-      hosting.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-      container.addSubview(hosting.view)
-      host = hosting
-    }
-
-    channel.setMethodCallHandler { [weak self] call, result in
-      guard let self = self else { result(nil); return }
-      switch call.method {
-      case "setValue":
-        if let v = call.arguments as? Bool { self.model.isOn = v }
-        result(nil)
-      case "updateConfig":
-        self.model.apply(args: call.arguments as? [String: Any] ?? [:])
-        result(nil)
-      default:
-        result(FlutterMethodNotImplemented)
-      }
-    }
-  }
-
-  func view() -> UIView { container }
-}
-
-// MARK: - SwiftUI
-
-final class GlassToggleModel: ObservableObject {
-  @Published var isOn: Bool
-  @Published var tint: UIColor?
+private final class GlassToggleModel: ObservableObject {
+  @Published var configuration: GlassToggleConfiguration
   var onChanged: ((Bool) -> Void)?
 
-  init(args: [String: Any]) {
-    isOn = args["value"] as? Bool ?? false
-    tint = GlassColor.fromARGB(args["tint"] as? Int)
+  init(arguments: GlassArguments) {
+    configuration = GlassToggleConfiguration(arguments: arguments)
   }
 
-  func apply(args: [String: Any]) {
-    isOn = args["value"] as? Bool ?? isOn
-    tint = GlassColor.fromARGB(args["tint"] as? Int)
+  func apply(_ arguments: GlassArguments) {
+    configuration = GlassToggleConfiguration(arguments: arguments)
+  }
+
+  func setValue(_ value: Bool) {
+    configuration.value = value
+    onChanged?(value)
   }
 }
 
-@available(iOS 16.0, *)
-struct GlassToggleRoot: View {
+@available(iOS 15.0, *)
+private struct GlassToggleRoot: View {
   @ObservedObject var model: GlassToggleModel
 
   var body: some View {
     Toggle(
       "",
       isOn: Binding(
-        get: { model.isOn },
-        set: { newValue in
-          model.isOn = newValue
-          model.onChanged?(newValue)
-        })
-    )
-    .labelsHidden()
-    .tint(model.tint.map { Color(uiColor: $0) })
+        get: { model.configuration.value },
+        set: model.setValue))
+      .labelsHidden()
+      .tint(model.configuration.controlStyle.tintColor.map { Color(uiColor: $0) })
+      .modifier(GlassControlStyleModifier(style: model.configuration.controlStyle))
+      .disabled(!model.configuration.enabled)
+      .opacity(
+        model.configuration.enabled ? 1 : model.configuration.controlStyle.disabledOpacity)
+      .accessibilityLabel(
+        model.configuration.accessibilityLabel.map(Text.init) ?? Text("Toggle"))
+  }
+}
+
+enum GlassToggleView {
+  static func make(
+    frame: CGRect,
+    viewId: Int64,
+    arguments: GlassArguments,
+    messenger: FlutterBinaryMessenger
+  ) -> FlutterPlatformView {
+    let model = GlassToggleModel(arguments: arguments)
+    let host = GlassPlatformViewHost(
+      frame: frame,
+      viewType: FlutterNativeViewPlugin.toggleViewType,
+      viewId: viewId,
+      messenger: messenger,
+      rootView: AnyView(GlassToggleRoot(model: model)),
+      fallbackSize: CGSize(width: 52, height: 32),
+      onUpdate: { [weak model] next in
+        model?.apply(next)
+        return true
+      })
+    host.applyInterfaceStyle(arguments)
+    model.onChanged = { [weak host] value in host?.emit("onChanged", arguments: value) }
+    return host
   }
 }

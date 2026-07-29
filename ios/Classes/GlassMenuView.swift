@@ -2,182 +2,125 @@ import Flutter
 import SwiftUI
 import UIKit
 
-// MARK: - Factory
+private struct GlassMenuItem: Identifiable {
+  let id: Int
+  let label: String
+  let symbol: String?
+  let enabled: Bool
+}
 
-final class GlassMenuViewFactory: NSObject, FlutterPlatformViewFactory {
-  private let messenger: FlutterBinaryMessenger
-  init(messenger: FlutterBinaryMessenger) {
-    self.messenger = messenger
-    super.init()
-  }
-  func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol {
-    FlutterStandardMessageCodec.sharedInstance()
-  }
-  func create(withFrame frame: CGRect, viewIdentifier viewId: Int64, arguments args: Any?)
-    -> FlutterPlatformView
-  {
-    GlassMenuPlatformView(
-      frame: frame, viewId: viewId,
-      args: args as? [String: Any] ?? [:], messenger: messenger)
+private struct GlassMenuConfiguration {
+  let label: String
+  let symbol: String?
+  let enabled: Bool
+  let accessibilityLabel: String?
+  let items: [GlassMenuItem]
+  let style: GlassStyleConfiguration
+  let controlStyle: GlassControlStyleConfiguration
+
+  init(arguments: GlassArguments) {
+    label = arguments.string("label", default: "Menu")
+    symbol = arguments.string("symbol")
+    enabled = arguments.bool("enabled", default: true)
+    accessibilityLabel = arguments.string("accessibilityLabel")
+    items = arguments.items("items").enumerated().map { index, item in
+      GlassMenuItem(
+        id: index,
+        label: item.string("label", default: ""),
+        symbol: item.string("symbol"),
+        enabled: item.bool("enabled", default: true))
+    }
+    style = GlassStyleConfiguration(arguments: arguments)
+    controlStyle = GlassControlStyleConfiguration(arguments: arguments)
   }
 }
 
-// MARK: - Platform view
+private final class GlassMenuModel: ObservableObject {
+  @Published var configuration: GlassMenuConfiguration
+  var onSelected: ((Int) -> Void)?
 
-final class GlassMenuPlatformView: NSObject, FlutterPlatformView {
-  private let container = UIView()
-  private let channel: FlutterMethodChannel
-  private let model: GlassMenuModel
-  private var host: UIViewController?
-
-  init(frame: CGRect, viewId: Int64, args: [String: Any], messenger: FlutterBinaryMessenger) {
-    channel = FlutterMethodChannel(
-      name: "\(FlutterNativeViewPlugin.menuViewType)/\(viewId)", binaryMessenger: messenger)
-    model = GlassMenuModel(args: args)
-    container.backgroundColor = .clear
-
-    super.init()
-
-    model.onSelected = { [weak channel] id in
-      channel?.invokeMethod("onSelected", arguments: id)
-    }
-
-    if #available(iOS 16.0, *) {
-      let hosting = UIHostingController(rootView: GlassMenuRoot(model: model))
-      hosting.view.backgroundColor = .clear
-      hosting.view.frame = container.bounds
-      hosting.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-      container.addSubview(hosting.view)
-      host = hosting
-    }
-
-    channel.setMethodCallHandler { [weak self] call, result in
-      guard let self = self else { result(nil); return }
-      switch call.method {
-      case "getIntrinsicSize":
-        result(self.intrinsicSize())
-      case "updateConfig":
-        self.model.apply(args: call.arguments as? [String: Any] ?? [:])
-        DispatchQueue.main.async { result(self.intrinsicSize()) }
-      default:
-        result(FlutterMethodNotImplemented)
-      }
-    }
+  init(arguments: GlassArguments) {
+    configuration = GlassMenuConfiguration(arguments: arguments)
   }
 
-  private func intrinsicSize() -> [String: Double] {
-    guard let host = host else { return ["width": 100, "height": 44] }
-    // Use the hosting controller's ideal sizing; .compressedSize truncates SwiftUI
-    // Text to zero width, which makes labels disappear.
-    let unbounded = CGSize(
-      width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
-    if #available(iOS 16.0, *), let hosting = host as? UIHostingController<GlassMenuRoot> {
-      let size = hosting.sizeThatFits(in: unbounded)
-      return ["width": Double(ceil(size.width)), "height": Double(ceil(size.height))]
-    }
-    let view = host.view!
-    view.setNeedsLayout()
-    view.layoutIfNeeded()
-    let size = view.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
-    return ["width": Double(size.width), "height": Double(size.height)]
-  }
-
-  func view() -> UIView { container }
-}
-
-// MARK: - SwiftUI
-
-final class GlassMenuModel: ObservableObject {
-  @Published var label: String
-  @Published var sfSymbol: String
-  @Published var items: [[String: Any]]
-  @Published var tint: UIColor?
-  @Published var iconColor: UIColor?
-  var onSelected: ((String) -> Void)?
-
-  init(args: [String: Any]) {
-    label = args["label"] as? String ?? "Menu"
-    sfSymbol = args["sfSymbol"] as? String ?? ""
-    items = args["items"] as? [[String: Any]] ?? []
-    tint = GlassColor.fromARGB(args["tint"] as? Int)
-    iconColor = GlassColor.fromARGB(args["iconColor"] as? Int)
-  }
-
-  func apply(args: [String: Any]) {
-    label = args["label"] as? String ?? label
-    sfSymbol = args["sfSymbol"] as? String ?? sfSymbol
-    items = args["items"] as? [[String: Any]] ?? items
-    tint = GlassColor.fromARGB(args["tint"] as? Int)
-    iconColor = GlassColor.fromARGB(args["iconColor"] as? Int)
+  func apply(_ arguments: GlassArguments) {
+    configuration = GlassMenuConfiguration(arguments: arguments)
   }
 }
 
-@available(iOS 16.0, *)
-struct GlassMenuRoot: View {
+@available(iOS 15.0, *)
+private struct GlassMenuRoot: View {
   @ObservedObject var model: GlassMenuModel
 
   private var trigger: some View {
-    HStack(spacing: 6) {
-      if !model.sfSymbol.isEmpty {
-        Image(systemName: model.sfSymbol)
-          .font(.system(size: 16, weight: .semibold))
-      }
-      Text(model.label)
-        .font(.system(size: 17, weight: .semibold))
+    HStack(spacing: 7) {
+      if let symbol = model.configuration.symbol { Image(systemName: symbol) }
+      Text(model.configuration.label)
     }
-    .foregroundStyle(
-      model.iconColor.map { Color(uiColor: $0) }
-      ?? model.tint.map { Color(uiColor: $0) }
-      ?? .primary
-    )
+    .font(.system(size: 17, weight: .semibold))
     .padding(.horizontal, 16)
-    .padding(.vertical, 10)
+    .frame(minHeight: minimumHeight)
+    .modifier(
+      GlassEffectModifier(
+        style: model.configuration.style,
+        solidFallbackColor: .secondarySystemBackground))
   }
 
   var body: some View {
-    if #available(iOS 26.0, *) {
-      Menu {
-        ForEach(model.items.indices, id: \.self) { index in
-          let item = model.items[index]
-          Button(action: { model.onSelected?(item["id"] as? String ?? "") }) {
-            if let symbol = item["sfSymbol"] as? String, !symbol.isEmpty {
-              Label(item["title"] as? String ?? "", systemImage: symbol)
-            } else {
-              Text(item["title"] as? String ?? "")
-            }
+    Menu {
+      ForEach(model.configuration.items) { item in
+        Button(action: { model.onSelected?(item.id) }) {
+          if let symbol = item.symbol {
+            Label(item.label, systemImage: symbol)
+          } else {
+            Text(item.label)
           }
         }
-      } label: {
-        trigger
-          .contentShape(Capsule())
-          .glassEffect(resolvedGlass(), in: Capsule())
+        .disabled(!item.enabled)
       }
-      .buttonStyle(.plain)
-    } else {
-      Menu {
-        ForEach(model.items.indices, id: \.self) { index in
-          let item = model.items[index]
-          Button(action: { model.onSelected?(item["id"] as? String ?? "") }) {
-            if let symbol = item["sfSymbol"] as? String, !symbol.isEmpty {
-              Label(item["title"] as? String ?? "", systemImage: symbol)
-            } else {
-              Text(item["title"] as? String ?? "")
-            }
-          }
-        }
-      } label: {
-        trigger
-      }
-      .buttonStyle(.borderedProminent)
-      .tint(model.tint.map { Color(uiColor: $0) } ?? .accentColor)
-      .clipShape(Capsule())
+    } label: {
+      trigger
     }
+    .buttonStyle(.plain)
+    .modifier(GlassControlStyleModifier(style: model.configuration.controlStyle))
+    .disabled(!model.configuration.enabled)
+    .opacity(
+      model.configuration.enabled ? 1 : model.configuration.controlStyle.disabledOpacity)
+    .accessibilityLabel(
+      model.configuration.accessibilityLabel.map(Text.init)
+        ?? Text(model.configuration.label))
   }
 
-  @available(iOS 26.0, *)
-  private func resolvedGlass() -> Glass {
-    var glass = Glass.regular.interactive()
-    if let tint = model.tint { glass = glass.tint(Color(uiColor: tint)) }
-    return glass
+  private var minimumHeight: CGFloat {
+    switch model.configuration.controlStyle.size {
+    case .compact: return 36
+    case .regular: return 44
+    case .large: return 52
+    }
+  }
+}
+
+enum GlassMenuView {
+  static func make(
+    frame: CGRect,
+    viewId: Int64,
+    arguments: GlassArguments,
+    messenger: FlutterBinaryMessenger
+  ) -> FlutterPlatformView {
+    let model = GlassMenuModel(arguments: arguments)
+    let host = GlassPlatformViewHost(
+      frame: frame,
+      viewType: FlutterNativeViewPlugin.menuViewType,
+      viewId: viewId,
+      messenger: messenger,
+      rootView: AnyView(GlassMenuRoot(model: model)),
+      fallbackSize: CGSize(width: 120, height: 44),
+      onUpdate: { [weak model] next in
+        model?.apply(next)
+        return true
+      })
+    host.applyInterfaceStyle(arguments)
+    model.onSelected = { [weak host] index in host?.emit("onSelected", arguments: index) }
+    return host
   }
 }

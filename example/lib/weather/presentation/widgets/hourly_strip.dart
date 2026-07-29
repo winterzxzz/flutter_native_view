@@ -6,11 +6,7 @@ import '../../shared/icons.dart';
 import '../../domain/entities/hourly_forecast.dart';
 
 class HourlyStrip extends StatelessWidget {
-  const HourlyStrip({
-    super.key,
-    required this.hourly,
-    required this.unit,
-  });
+  const HourlyStrip({super.key, required this.hourly, required this.unit});
 
   final List<HourlyForecast> hourly;
   final TempUnit unit;
@@ -32,9 +28,7 @@ class HourlyStrip extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.15),
-              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,

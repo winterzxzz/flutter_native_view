@@ -14,9 +14,7 @@ class SettingsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final unit = context.watch<SettingsCubit>().state;
-    final selectedIndex = unit == TempUnit.celsius ? 0 : 1;
     final themeMode = context.watch<AppThemeCubit>().state;
-    final themeIndex = themeMode == AppThemeMode.light ? 0 : 1;
     final brightness = themeMode == AppThemeMode.dark
         ? Brightness.dark
         : Brightness.light;
@@ -44,15 +42,16 @@ class SettingsTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          LiquidGlassSegmentedControl(
-            segments: const ['°C', '°F'],
-            selectedIndex: selectedIndex,
-            brightness: brightness,
-            onChanged: (index) {
-              context.read<SettingsCubit>().setUnit(
-                index == 0 ? TempUnit.celsius : TempUnit.fahrenheit,
-              );
-            },
+          LiquidGlassSegmentedControl<TempUnit>(
+            segments: const <LiquidGlassSegment<TempUnit>>[
+              LiquidGlassSegment(value: TempUnit.celsius, label: '°C'),
+              LiquidGlassSegment(value: TempUnit.fahrenheit, label: '°F'),
+            ],
+            value: unit,
+            controlStyle: LiquidGlassTheme.of(
+              context,
+            ).controlStyle.copyWith(brightness: brightness),
+            onChanged: context.read<SettingsCubit>().setUnit,
           ),
           const SizedBox(height: 32),
           const Text(
@@ -64,15 +63,16 @@ class SettingsTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          LiquidGlassSegmentedControl(
-            segments: const ['Light', 'Dark'],
-            selectedIndex: themeIndex,
-            brightness: brightness,
-            onChanged: (index) {
-              context.read<AppThemeCubit>().setMode(
-                index == 0 ? AppThemeMode.light : AppThemeMode.dark,
-              );
-            },
+          LiquidGlassSegmentedControl<AppThemeMode>(
+            segments: const <LiquidGlassSegment<AppThemeMode>>[
+              LiquidGlassSegment(value: AppThemeMode.light, label: 'Light'),
+              LiquidGlassSegment(value: AppThemeMode.dark, label: 'Dark'),
+            ],
+            value: themeMode,
+            controlStyle: LiquidGlassTheme.of(
+              context,
+            ).controlStyle.copyWith(brightness: brightness),
+            onChanged: context.read<AppThemeCubit>().setMode,
           ),
           const SizedBox(height: 32),
           const Text(

@@ -34,10 +34,10 @@ class WeatherVisual {
 
 /// Creates a [LinearGradient] from top center to bottom center with [colors].
 LinearGradient _gradient(List<Color> colors) => LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: colors,
-    );
+  begin: Alignment.topCenter,
+  end: Alignment.bottomCenter,
+  colors: colors,
+);
 
 /// Day-time weather visuals keyed by WMO condition group.
 final _dayVisuals = <String, WeatherVisual>{

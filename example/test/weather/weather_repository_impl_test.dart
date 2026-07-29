@@ -32,8 +32,9 @@ void main() {
         timezone: 'Europe/London',
       );
 
-      when(() => mockDataSource.searchLocation(any()))
-          .thenAnswer((_) async => model);
+      when(
+        () => mockDataSource.searchLocation(any()),
+      ).thenAnswer((_) async => model);
 
       final result = await repository.search('London');
 
@@ -43,25 +44,27 @@ void main() {
       expect(location.latitude, 51.5);
     });
 
-    test('returns NotFoundFailure on DioException with 200 (empty results)',
-        () async {
-      when(() => mockDataSource.searchLocation(any())).thenThrow(
-        DioException(
-          requestOptions: RequestOptions(path: ''),
-          response: Response(
+    test(
+      'returns NotFoundFailure on DioException with 200 (empty results)',
+      () async {
+        when(() => mockDataSource.searchLocation(any())).thenThrow(
+          DioException(
             requestOptions: RequestOptions(path: ''),
-            statusCode: 200,
-            data: {'results': []},
+            response: Response(
+              requestOptions: RequestOptions(path: ''),
+              statusCode: 200,
+              data: {'results': []},
+            ),
+            type: DioExceptionType.badResponse,
           ),
-          type: DioExceptionType.badResponse,
-        ),
-      );
+        );
 
-      final result = await repository.search('Nowhereville');
+        final result = await repository.search('Nowhereville');
 
-      expect(result.isLeft(), true);
-      expect(result, left(const NotFoundFailure()));
-    });
+        expect(result.isLeft(), true);
+        expect(result, left(const NotFoundFailure()));
+      },
+    );
 
     test('returns NetworkFailure on connection timeout', () async {
       when(() => mockDataSource.searchLocation(any())).thenThrow(
@@ -78,8 +81,9 @@ void main() {
     });
 
     test('returns UnknownFailure on generic exception', () async {
-      when(() => mockDataSource.searchLocation(any()))
-          .thenThrow(Exception('unexpected'));
+      when(
+        () => mockDataSource.searchLocation(any()),
+      ).thenThrow(Exception('unexpected'));
 
       final result = await repository.search('London');
 
@@ -112,11 +116,13 @@ void main() {
         daily: [],
       );
 
-      when(() => mockDataSource.fetchForecast(
-            latitude: any(named: 'latitude'),
-            longitude: any(named: 'longitude'),
-            timezone: any(named: 'timezone'),
-          )).thenAnswer((_) async => model);
+      when(
+        () => mockDataSource.fetchForecast(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+          timezone: any(named: 'timezone'),
+        ),
+      ).thenAnswer((_) async => model);
 
       final result = await repository.getForecast(location);
 
@@ -127,11 +133,13 @@ void main() {
     });
 
     test('returns NetworkFailure on 5xx error', () async {
-      when(() => mockDataSource.fetchForecast(
-            latitude: any(named: 'latitude'),
-            longitude: any(named: 'longitude'),
-            timezone: any(named: 'timezone'),
-          )).thenThrow(
+      when(
+        () => mockDataSource.fetchForecast(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+          timezone: any(named: 'timezone'),
+        ),
+      ).thenThrow(
         DioException(
           requestOptions: RequestOptions(path: ''),
           response: Response(
@@ -150,13 +158,13 @@ void main() {
     });
 
     test('returns UnknownFailure on parse error', () async {
-      when(() => mockDataSource.fetchForecast(
-            latitude: any(named: 'latitude'),
-            longitude: any(named: 'longitude'),
-            timezone: any(named: 'timezone'),
-          )).thenThrow(
-        const FormatException('bad json'),
-      );
+      when(
+        () => mockDataSource.fetchForecast(
+          latitude: any(named: 'latitude'),
+          longitude: any(named: 'longitude'),
+          timezone: any(named: 'timezone'),
+        ),
+      ).thenThrow(const FormatException('bad json'));
 
       final result = await repository.getForecast(location);
 

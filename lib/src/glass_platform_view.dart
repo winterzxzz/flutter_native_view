@@ -3,110 +3,166 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// How the embedded [UiKitView] should claim touches.
-enum GlassGesture {
-  /// No gesture recognizers — the view is purely decorative (e.g. a spinner).
-  none,
+import 'glass_config_tracker.dart';
+import 'liquid_glass_diagnostics.dart';
+import 'liquid_glass_style.dart';
+import 'liquid_glass_theme.dart';
 
-  /// Claim the tap sequence only. Use for buttons that fire on release while
-  /// letting scroll/drag pass through to Flutter.
-  tap,
+enum GlassGesture { tap, eager }
 
-  /// Claim every touch eagerly. Use for views that handle their own drag/typing
-  /// (sliders, switches, text fields, tab bars).
-  eager,
-}
-
-/// Shared lifecycle for every glass widget that embeds a native iOS
-/// [UiKitView] over a per-view [MethodChannel].
-///
-/// Mixing this in gives a widget, for free and in one place:
-///
-/// * a [channel] created with the standard `"<viewType>/<id>"` name,
-/// * **handler cleanup on [dispose]** (prevents `setState`-after-unmount and
-///   retained-closure leaks),
-/// * optional intrinsic-size measurement with a fade-in that hides the
-///   placeholder→measured size correction,
-/// * [syncConfig], a params-diffing `updateConfig` call that replaces hand
-///   written per-field `didUpdateWidget` checks (so a newly added parameter
-///   can never be silently dropped from the native update).
-///
-/// A widget supplies [glassViewType] and [buildParams]; everything else has a
-/// sensible default. Override [handleCall] to receive native→Dart callbacks,
-/// and set [measuresSize] when the native view reports its own size.
+/// Shared platform-view lifecycle and synchronization for every native control.
 mixin GlassPlatformViewMixin<T extends StatefulWidget> on State<T> {
+  final GlassConfigTracker _tracker = GlassConfigTracker();
+  final GlassFrameSyncCoordinator _syncCoordinator =
+      GlassFrameSyncCoordinator();
   MethodChannel? _channel;
   Size? _size;
-  Map<String, dynamic>? _lastParams;
+  int _configRevision = 0;
+  LiquidGlassDiagnostics? _activeDiagnostics;
 
-  /// The live channel to the native view, or `null` before creation / after
-  /// dispose. Use it for lightweight one-shot calls such as `setValue`.
   @protected
   MethodChannel? get channel => _channel;
 
-  /// The last size reported by the native view, or `null` until it reports one.
   @protected
   Size? get measuredSize => _size;
 
-  /// The platform-view registration id, e.g.
-  /// `'flutter_native_view/glass_button'`. The per-instance channel name is
-  /// derived from this as `'<glassViewType>/<id>'`.
   @protected
   String get glassViewType;
 
-  /// The full parameter map sent to the native view on creation and, when it
-  /// changes, via `updateConfig`. Read theme values here.
   @protected
-  Map<String, dynamic> buildParams();
+  Map<String, Object?> buildParams();
 
-  /// Handles native→Dart method calls (events such as `onPressed`,
-  /// `onChanged`). Defaults to ignoring everything.
   @protected
-  Future<dynamic> handleCall(MethodCall call) async => null;
+  Future<Object?> handleCall(MethodCall call) async => null;
 
-  /// Whether the native view reports its own intrinsic size. When `true`,
-  /// [glassView] sizes itself to the measurement and fades in once it arrives.
   @protected
   bool get measuresSize => false;
 
-  /// Wire up [onPlatformViewCreated]. Creates the channel, installs
-  /// [handleCall], and — when [measuresSize] — fetches the intrinsic size.
+  Future<Object?> _receiveCall(MethodCall call) {
+    _activeDiagnostics?.record(
+      glassViewType,
+      LiquidGlassDiagnosticEventKind.nativeEvent,
+    );
+    return handleCall(call);
+  }
+
   @protected
-  Future<void> onGlassViewCreated(int id) async {
-    final MethodChannel ch = MethodChannel('$glassViewType/$id');
-    ch.setMethodCallHandler(handleCall);
-    _channel = ch;
-    _lastParams = buildParams();
+  Future<void> onGlassViewCreated(
+    int id,
+    Map<String, Object?> creationSnapshot,
+  ) async {
+    if (!mounted) return;
+    final MethodChannel next = MethodChannel('$glassViewType/$id');
+    _channel?.setMethodCallHandler(null);
+    next.setMethodCallHandler(_receiveCall);
+    _channel = next;
+    // The platform view owns the snapshot passed when it was constructed, not
+    // necessarily the widget's current snapshot when asynchronous creation
+    // completes. Start from that exact state, then immediately catch up.
+    _tracker.initialize(creationSnapshot);
+    _activeDiagnostics?.record(
+      glassViewType,
+      LiquidGlassDiagnosticEventKind.viewCreated,
+    );
+    _flushConfig();
     if (measuresSize) {
-      await _applySize(ch.invokeMapMethod<String, dynamic>('getIntrinsicSize'));
+      _activeDiagnostics?.record(
+        glassViewType,
+        LiquidGlassDiagnosticEventKind.intrinsicMeasurement,
+      );
+      await _applySize(
+        next.invokeMapMethod<String, Object?>('getIntrinsicSize'),
+        revision: _configRevision,
+      );
     }
   }
 
-  /// Push current [buildParams] to the native view when they differ from the
-  /// last sent set. Call this from `didUpdateWidget`. Diffing the whole map
-  /// means no parameter can be forgotten in a hand-maintained field list.
+  /// Schedules at most one full-snapshot update after the current frame.
   @protected
   void syncConfig() {
-    final Map<String, dynamic> next = buildParams();
-    if (mapEquals(next, _lastParams)) return;
-    _lastParams = next;
-    final Future<Map<String, dynamic>?>? res =
-        _channel?.invokeMapMethod<String, dynamic>('updateConfig', next);
-    if (measuresSize && res != null) _applySize(res);
+    if (_channel == null) return;
+    _syncCoordinator.schedule(
+      enqueue: (VoidCallback callback) {
+        final WidgetsBinding binding = WidgetsBinding.instance;
+        binding.addPostFrameCallback((_) => callback());
+        // Native events can require a controlled-value reconciliation even
+        // when the callback deliberately does not rebuild the parent.
+        binding.ensureVisualUpdate();
+      },
+      flush: () {
+        if (mounted) _flushConfig();
+      },
+    );
   }
 
-  Future<void> _applySize(Future<Map<String, dynamic>?> call) async {
-    final Map<String, dynamic>? res = await call;
-    if (res == null || !mounted) return;
-    final Size next = Size(
-      (res['width'] as num).toDouble(),
-      (res['height'] as num).toDouble(),
+  void _flushConfig() {
+    final MethodChannel? activeChannel = _channel;
+    if (activeChannel == null) return;
+    final Map<String, Object?> next = buildParams();
+    if (!_tracker.shouldSend(next)) return;
+    final int revision = ++_configRevision;
+    _activeDiagnostics?.record(
+      glassViewType,
+      LiquidGlassDiagnosticEventKind.configUpdate,
     );
-    // Skip the rebuild when the measured size is unchanged — e.g. a counter
-    // label "Tapped 0" → "Tapped 1" keeps the same width, so re-running
-    // setState would needlessly repaint the platform view (visible flash).
-    if (_size == next) return;
+    final Future<Map<String, Object?>?> response = activeChannel
+        .invokeMapMethod<String, Object?>('updateConfig', next);
+    if (measuresSize) {
+      _applySize(response, revision: revision);
+    }
+  }
+
+  /// Dispatches an optimistic native value and reconciles it after the frame.
+  ///
+  /// [notify] runs after the tracker patch. Reconciliation is scheduled in a
+  /// `finally` block so a callback exception cannot strand optimistic native
+  /// state. If the callback accepts the value and rebuilds, the new widget
+  /// snapshot matches native and no update is sent. If it rejects the value or
+  /// does not rebuild, the authoritative widget snapshot is sent back.
+  @protected
+  void dispatchControlledNativeState(
+    Map<String, Object?> patch,
+    VoidCallback notify,
+  ) {
+    _tracker.acceptNativeState(patch);
+    try {
+      notify();
+    } finally {
+      syncConfig();
+    }
+  }
+
+  Future<void> _applySize(
+    Future<Map<String, Object?>?> call, {
+    required int revision,
+  }) async {
+    final Map<String, Object?>? result = await call;
+    if (result == null || !mounted || revision != _configRevision) return;
+    final Object? rawWidth = result['width'];
+    final Object? rawHeight = result['height'];
+    if (rawWidth is! num || rawHeight is! num) return;
+    final Size next = Size(rawWidth.toDouble(), rawHeight.toDouble());
+    if (!next.width.isFinite ||
+        !next.height.isFinite ||
+        next.width <= 0 ||
+        next.height <= 0 ||
+        _size == next) {
+      return;
+    }
     setState(() => _size = next);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _activeDiagnostics = LiquidGlassTheme.maybeOf(context)?.diagnostics;
+    syncConfig();
+  }
+
+  @override
+  void didUpdateWidget(covariant T oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    syncConfig();
   }
 
   @override
@@ -116,14 +172,6 @@ mixin GlassPlatformViewMixin<T extends StatefulWidget> on State<T> {
     super.dispose();
   }
 
-  /// Builds the iOS [UiKitView] wrapped in a [SizedBox].
-  ///
-  /// Sizing precedence: an explicit [width]/[height], else the native
-  /// [measuredSize], else [estimatedSize]. When [measuresSize] is on, the view
-  /// stays invisible at the estimated size and fades in once the real size
-  /// arrives, hiding the placeholder→measured correction.
-  ///
-  /// Off iOS this is never called — return your [fallback] in `build` first.
   @protected
   Widget glassView({
     double? width,
@@ -131,49 +179,145 @@ mixin GlassPlatformViewMixin<T extends StatefulWidget> on State<T> {
     Size estimatedSize = const Size(120, 44),
     GlassGesture gesture = GlassGesture.tap,
   }) {
+    final Map<String, Object?> creationSnapshot = buildParams();
     final Size size = Size(
       width ?? _size?.width ?? estimatedSize.width,
       height ?? _size?.height ?? estimatedSize.height,
     );
-
     final Widget view = SizedBox(
       width: size.width,
       height: size.height,
       child: UiKitView(
         viewType: glassViewType,
-        creationParams: buildParams(),
+        creationParams: creationSnapshot,
         creationParamsCodec: const StandardMessageCodec(),
-        onPlatformViewCreated: onGlassViewCreated,
+        onPlatformViewCreated: (int id) =>
+            onGlassViewCreated(id, creationSnapshot),
         gestureRecognizers: _recognizers(gesture),
       ),
     );
-
-    // Fade in only for measured views, where the estimate may be wrong. Fixed
-    // and fill-width views already know their size, so show them immediately.
     if (!measuresSize) return view;
     return AnimatedOpacity(
-      opacity: _size == null ? 0.0 : 1.0,
-      duration: const Duration(milliseconds: 120),
+      opacity: _size == null ? 0 : 1,
+      duration: const Duration(milliseconds: 100),
       curve: Curves.easeOut,
       child: view,
     );
   }
-
-  Set<Factory<OneSequenceGestureRecognizer>> _recognizers(GlassGesture g) {
-    switch (g) {
-      case GlassGesture.none:
-        return const <Factory<OneSequenceGestureRecognizer>>{};
-      case GlassGesture.tap:
-        return <Factory<OneSequenceGestureRecognizer>>{
-          Factory<TapGestureRecognizer>(TapGestureRecognizer.new),
-        };
-      case GlassGesture.eager:
-        return <Factory<OneSequenceGestureRecognizer>>{
-          Factory<EagerGestureRecognizer>(EagerGestureRecognizer.new),
-        };
-    }
-  }
 }
 
-/// Convenience shorthand for the common iOS check used by every glass widget.
-bool get isGlassPlatform => defaultTargetPlatform == TargetPlatform.iOS;
+Set<Factory<OneSequenceGestureRecognizer>> _recognizers(GlassGesture gesture) {
+  return switch (gesture) {
+    GlassGesture.tap => <Factory<OneSequenceGestureRecognizer>>{
+      Factory<TapGestureRecognizer>(TapGestureRecognizer.new),
+    },
+    GlassGesture.eager => <Factory<OneSequenceGestureRecognizer>>{
+      Factory<EagerGestureRecognizer>(EagerGestureRecognizer.new),
+    },
+  };
+}
+
+@visibleForTesting
+bool isGlassPlatformFor({
+  required TargetPlatform platform,
+  required bool isWeb,
+}) => !isWeb && platform == TargetPlatform.iOS;
+
+bool get isGlassPlatform =>
+    isGlassPlatformFor(platform: defaultTargetPlatform, isWeb: kIsWeb);
+
+@protected
+LiquidGlassStyle resolveGlassStyle(
+  BuildContext context,
+  LiquidGlassStyle? explicit,
+) => explicit ?? LiquidGlassTheme.of(context).style;
+
+@protected
+LiquidGlassControlStyle resolveControlStyle(
+  BuildContext context,
+  LiquidGlassControlStyle? explicit,
+) => explicit ?? LiquidGlassTheme.of(context).controlStyle;
+
+@protected
+Map<String, Object?> encodeStyles(
+  LiquidGlassStyle style,
+  LiquidGlassControlStyle controlStyle,
+) {
+  final LiquidGlassShape shape = style.shape;
+  final Map<String, Object?> encodedShape = switch (shape) {
+    LiquidGlassCapsuleShape() => const <String, Object?>{'kind': 'capsule'},
+    LiquidGlassCircleShape() => const <String, Object?>{'kind': 'circle'},
+    LiquidGlassRoundedRectangleShape(:final cornerRadius) => <String, Object?>{
+      'kind': 'roundedRectangle',
+      'cornerRadius': cornerRadius,
+    },
+  };
+  return <String, Object?>{
+    'style': <String, Object?>{
+      'variant': style.variant.name,
+      'tint': style.tint?.toARGB32(),
+      'shape': encodedShape,
+      'interactive': style.interactive,
+    },
+    ...encodeControlStyle(controlStyle),
+  };
+}
+
+@protected
+Map<String, Object?> encodeControlStyle(LiquidGlassControlStyle controlStyle) =>
+    <String, Object?>{
+      'controlStyle': <String, Object?>{
+        'tintColor': controlStyle.tintColor?.toARGB32(),
+        'foregroundColor': controlStyle.foregroundColor?.toARGB32(),
+        'brightness': controlStyle.brightness?.name,
+        'size': controlStyle.size.name,
+        'disabledOpacity': controlStyle.disabledOpacity,
+      },
+    };
+
+@protected
+BorderRadius fallbackBorderRadius(LiquidGlassShape shape) => switch (shape) {
+  LiquidGlassRoundedRectangleShape(:final cornerRadius) =>
+    BorderRadius.circular(cornerRadius),
+  LiquidGlassCapsuleShape() => BorderRadius.circular(999),
+  LiquidGlassCircleShape() => BorderRadius.circular(999),
+};
+
+@protected
+OutlinedBorder fallbackOutlinedBorder(LiquidGlassShape shape) =>
+    switch (shape) {
+      LiquidGlassRoundedRectangleShape(:final cornerRadius) =>
+        RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(cornerRadius),
+        ),
+      LiquidGlassCapsuleShape() => const StadiumBorder(),
+      LiquidGlassCircleShape() => const CircleBorder(),
+    };
+
+@protected
+Widget applyFallbackControlStyle({
+  required Widget child,
+  required LiquidGlassControlStyle controlStyle,
+  required bool enabled,
+}) {
+  Widget result = child;
+  if (controlStyle.foregroundColor case final Color foreground) {
+    result = DefaultTextStyle.merge(
+      style: TextStyle(color: foreground),
+      child: IconTheme.merge(
+        data: IconThemeData(color: foreground),
+        child: result,
+      ),
+    );
+  }
+  if (!enabled) {
+    result = Opacity(opacity: controlStyle.disabledOpacity, child: result);
+  }
+  if (controlStyle.brightness case final Brightness brightness) {
+    result = Theme(
+      data: ThemeData(brightness: brightness),
+      child: result,
+    );
+  }
+  return result;
+}

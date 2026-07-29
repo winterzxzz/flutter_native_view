@@ -29,11 +29,11 @@ class GeoLocationModel {
   final String timezone;
 
   Location toEntity() => Location(
-        name: name,
-        country: country,
-        admin1: admin1,
-        latitude: latitude,
-        longitude: longitude,
-        timezone: timezone,
-      );
+    name: name,
+    country: country,
+    admin1: admin1,
+    latitude: latitude,
+    longitude: longitude,
+    timezone: timezone,
+  );
 }

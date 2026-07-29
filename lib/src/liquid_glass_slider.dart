@@ -2,34 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'glass_platform_view.dart';
-import 'liquid_glass_theme.dart';
+import 'liquid_glass_style.dart';
 
-const String _kSliderViewType = 'flutter_native_view/glass_slider';
+const String _kSliderViewType = 'liquid_glass_native/slider';
 
-/// A native SwiftUI slider with Liquid Glass styling on iOS 26+.
-///
-/// On non-iOS platforms it falls back to a Material [Slider].
+/// A controlled system SwiftUI slider with validated finite bounds.
 class LiquidGlassSlider extends StatefulWidget {
   const LiquidGlassSlider({
     super.key,
     required this.value,
     required this.onChanged,
-    this.min = 0.0,
-    this.max = 1.0,
-    this.tint,
-    this.height = 32,
-  });
+    this.min = 0,
+    this.max = 1,
+    this.controlStyle,
+    this.semanticLabel,
+  }) : assert(min > double.negativeInfinity && max < double.infinity),
+       assert(min < max),
+       assert(value >= min && value <= max);
 
   final double value;
-  final ValueChanged<double> onChanged;
+  final ValueChanged<double>? onChanged;
   final double min;
   final double max;
-
-  /// Optional tint color. Falls back to the [LiquidGlassTheme] tint.
-  final Color? tint;
-
-  /// Track height. Defaults to 32. Width always fills the parent.
-  final double height;
+  final LiquidGlassControlStyle? controlStyle;
+  final String? semanticLabel;
 
   @override
   State<LiquidGlassSlider> createState() => _LiquidGlassSliderState();
@@ -41,43 +37,61 @@ class _LiquidGlassSliderState extends State<LiquidGlassSlider>
   String get glassViewType => _kSliderViewType;
 
   @override
-  Map<String, dynamic> buildParams() {
-    final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
-    return <String, dynamic>{
+  Map<String, Object?> buildParams() {
+    final LiquidGlassControlStyle control = resolveControlStyle(
+      context,
+      widget.controlStyle,
+    );
+    return <String, Object?>{
       'value': widget.value,
       'min': widget.min,
       'max': widget.max,
-      'tint': (widget.tint ?? t.tint)?.toARGB32(),
-      'respectAccessibility': t.respectAccessibility,
+      'enabled': widget.onChanged != null,
+      'accessibilityLabel': widget.semanticLabel,
+      ...encodeControlStyle(control),
     };
   }
 
   @override
-  Future<dynamic> handleCall(MethodCall call) async {
-    if (call.method == 'onChanged') widget.onChanged(call.arguments as double);
+  Future<Object?> handleCall(MethodCall call) async {
+    if (call.method == 'onChanged' && call.arguments is num) {
+      final double value = (call.arguments as num).toDouble();
+      dispatchControlledNativeState(<String, Object?>{
+        'value': value,
+      }, () => widget.onChanged?.call(value));
+    }
     return null;
   }
 
   @override
-  void didUpdateWidget(LiquidGlassSlider oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    syncConfig();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final LiquidGlassControlStyle control = resolveControlStyle(
+      context,
+      widget.controlStyle,
+    );
     if (!isGlassPlatform) {
-      return Slider(
-        value: widget.value.clamp(widget.min, widget.max),
-        onChanged: widget.onChanged,
-        min: widget.min,
-        max: widget.max,
-        activeColor: widget.tint,
+      return applyFallbackControlStyle(
+        controlStyle: control,
+        enabled: widget.onChanged != null,
+        child: SizedBox(
+          height: control.size.minimumDimension,
+          child: Semantics(
+            label: widget.semanticLabel,
+            slider: true,
+            child: Slider(
+              value: widget.value,
+              onChanged: widget.onChanged,
+              min: widget.min,
+              max: widget.max,
+              activeColor: control.tintColor,
+            ),
+          ),
+        ),
       );
     }
     return glassView(
       width: double.infinity,
-      height: widget.height,
+      height: control.size.minimumDimension,
       gesture: GlassGesture.eager,
     );
   }

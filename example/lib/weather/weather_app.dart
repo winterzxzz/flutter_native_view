@@ -17,27 +17,17 @@ class WeatherApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider<WeatherCubit>(
-          create: (_) => getIt<WeatherCubit>(),
-        ),
-        BlocProvider<SettingsCubit>(
-          create: (_) => getIt<SettingsCubit>(),
-        ),
-        BlocProvider<TabCubit>(
-          create: (_) => getIt<TabCubit>(),
-        ),
-        BlocProvider<AppThemeCubit>(
-          create: (_) => getIt<AppThemeCubit>(),
-        ),
+        BlocProvider<WeatherCubit>(create: (_) => getIt<WeatherCubit>()),
+        BlocProvider<SettingsCubit>(create: (_) => getIt<SettingsCubit>()),
+        BlocProvider<TabCubit>(create: (_) => getIt<TabCubit>()),
+        BlocProvider<AppThemeCubit>(create: (_) => getIt<AppThemeCubit>()),
       ],
       // No nested MaterialApp — embed in the gallery's Navigator so the
       // floating back button can pop back to the demo list. Theme only
       // applies the Inter text theme.
       child: Theme(
         data: Theme.of(context).copyWith(
-          textTheme: GoogleFonts.interTextTheme(
-            Theme.of(context).textTheme,
-          ),
+          textTheme: GoogleFonts.interTextTheme(Theme.of(context).textTheme),
         ),
         child: const WeatherHome(),
       ),

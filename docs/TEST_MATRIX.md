@@ -19,7 +19,7 @@ implemented until tests or validation evidence exist.
 
 | Story | Contract | Unit | Integration | E2E | Platform | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| TBD | Add rows when story packets are created | no | no | no | no | planned | none |
+| US-025 | Typed, synchronized Liquid Glass native-control v1 | yes | yes | no | yes | implemented | `docs/validation/2026-07-30-us-025-review-remediation.md` |
 
 ## Evidence Rules
 

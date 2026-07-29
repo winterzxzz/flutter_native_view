@@ -24,20 +24,22 @@ class WeatherStatusView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             switch (type) {
-              WeatherStatusType.loading => LiquidGlassActivityIndicator(
-                  size: 36,
-                  tint: Colors.white.withValues(alpha: 0.8),
+              WeatherStatusType.loading => SizedBox.square(
+                dimension: 36,
+                child: CircularProgressIndicator(
+                  color: Colors.white.withValues(alpha: 0.8),
                 ),
+              ),
               WeatherStatusType.error => Icon(
-                  Icons.cloud_off,
-                  color: Colors.white.withValues(alpha: 0.6),
-                  size: 48,
-                ),
+                Icons.cloud_off,
+                color: Colors.white.withValues(alpha: 0.6),
+                size: 48,
+              ),
               WeatherStatusType.empty => Icon(
-                  Icons.search,
-                  color: Colors.white.withValues(alpha: 0.4),
-                  size: 48,
-                ),
+                Icons.search,
+                color: Colors.white.withValues(alpha: 0.4),
+                size: 48,
+              ),
             },
             const SizedBox(height: 16),
             Text(
@@ -55,21 +57,7 @@ class WeatherStatusView extends StatelessWidget {
             ),
             if (type == WeatherStatusType.error && onRetry != null) ...[
               const SizedBox(height: 20),
-              LiquidGlassContainer(
-                borderRadius: 14,
-                onPressed: onRetry,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                  child: Text(
-                    'Retry',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
+              LiquidGlassButton(label: 'Retry', onPressed: onRetry),
             ],
           ],
         ),

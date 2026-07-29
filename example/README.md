@@ -1,17 +1,24 @@
-# liquid_glass_native_example
+# liquid_glass_native example
 
-Demonstrates how to use the liquid_glass_native plugin.
+The example contains:
 
-## Getting Started
+- a v1 control gallery with typed styles and selections;
+- live theme synchronization;
+- payload-free bridge diagnostics;
+- the preserved weather sample migrated to v1 controls.
 
-This project is a starting point for a Flutter application.
+Run:
 
-A few resources to get you started if this is your first Flutter project:
+```sh
+flutter run
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Build the real Swift bridge for the iOS simulator:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```sh
+flutter build ios --simulator --debug
+```
+
+An iOS 26 runtime is required to inspect the actual Liquid Glass material.
+iOS 15–25 display native SwiftUI controls and `ultraThinMaterial` custom
+surfaces; other platforms display Material fallbacks.

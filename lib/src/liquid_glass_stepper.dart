@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'glass_platform_view.dart';
-import 'liquid_glass_theme.dart';
+import 'liquid_glass_style.dart';
 
-const String _kStepperViewType = 'flutter_native_view/glass_stepper';
+const String _kStepperViewType = 'liquid_glass_native/stepper';
 
-/// A native SwiftUI stepper with Liquid Glass styling on iOS 26+.
-///
-/// On non-iOS platforms it falls back to two [IconButton]s + a label.
+/// A controlled system SwiftUI integer stepper.
 class LiquidGlassStepper extends StatefulWidget {
   const LiquidGlassStepper({
     super.key,
@@ -17,17 +15,20 @@ class LiquidGlassStepper extends StatefulWidget {
     this.step = 1,
     this.min,
     this.max,
-    this.tint,
-  });
+    this.controlStyle,
+    this.semanticLabel,
+  }) : assert(step > 0),
+       assert(min == null || max == null || min <= max),
+       assert(min == null || value >= min),
+       assert(max == null || value <= max);
 
   final int value;
-  final ValueChanged<int> onChanged;
+  final ValueChanged<int>? onChanged;
   final int step;
   final int? min;
   final int? max;
-
-  /// Optional tint color. Falls back to the [LiquidGlassTheme] tint.
-  final Color? tint;
+  final LiquidGlassControlStyle? controlStyle;
+  final String? semanticLabel;
 
   @override
   State<LiquidGlassStepper> createState() => _LiquidGlassStepperState();
@@ -42,52 +43,88 @@ class _LiquidGlassStepperState extends State<LiquidGlassStepper>
   bool get measuresSize => true;
 
   @override
-  Map<String, dynamic> buildParams() {
-    final LiquidGlassThemeData t = LiquidGlassTheme.of(context);
-    return <String, dynamic>{
+  Map<String, Object?> buildParams() {
+    final LiquidGlassControlStyle control = resolveControlStyle(
+      context,
+      widget.controlStyle,
+    );
+    return <String, Object?>{
       'value': widget.value,
       'step': widget.step,
       'min': widget.min,
       'max': widget.max,
-      'tint': (widget.tint ?? t.tint)?.toARGB32(),
-      'respectAccessibility': t.respectAccessibility,
+      'enabled': widget.onChanged != null,
+      'accessibilityLabel': widget.semanticLabel,
+      ...encodeControlStyle(control),
     };
   }
 
   @override
-  Future<dynamic> handleCall(MethodCall call) async {
-    if (call.method == 'onChanged') widget.onChanged(call.arguments as int);
+  Future<Object?> handleCall(MethodCall call) async {
+    if (call.method == 'onChanged' && call.arguments is num) {
+      final int value = (call.arguments as num).toInt();
+      dispatchControlledNativeState(<String, Object?>{
+        'value': value,
+      }, () => widget.onChanged?.call(value));
+    }
     return null;
   }
 
   @override
-  void didUpdateWidget(LiquidGlassStepper oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    syncConfig();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final LiquidGlassControlStyle control = resolveControlStyle(
+      context,
+      widget.controlStyle,
+    );
     if (!isGlassPlatform) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          IconButton(
-            icon: const Icon(Icons.remove),
-            onPressed: widget.min != null && widget.value <= widget.min!
-                ? null
-                : () => widget.onChanged(widget.value - widget.step),
+      final double dimension = control.size.minimumDimension;
+      final ButtonStyle iconStyle = IconButton.styleFrom(
+        minimumSize: Size.square(dimension),
+      );
+      return applyFallbackControlStyle(
+        controlStyle: control,
+        enabled: widget.onChanged != null,
+        child: Semantics(
+          label: widget.semanticLabel,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              IconButton(
+                icon: const Icon(Icons.remove),
+                color: control.tintColor ?? control.foregroundColor,
+                style: iconStyle,
+                onPressed:
+                    widget.onChanged == null ||
+                        (widget.min != null && widget.value <= widget.min!)
+                    ? null
+                    : () => widget.onChanged!(_nextValue(-widget.step)),
+              ),
+              Text('${widget.value}'),
+              IconButton(
+                icon: const Icon(Icons.add),
+                color: control.tintColor ?? control.foregroundColor,
+                style: iconStyle,
+                onPressed:
+                    widget.onChanged == null ||
+                        (widget.max != null && widget.value >= widget.max!)
+                    ? null
+                    : () => widget.onChanged!(_nextValue(widget.step)),
+              ),
+            ],
           ),
-          Text('${widget.value}', style: const TextStyle(fontSize: 17)),
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: widget.max != null && widget.value >= widget.max!
-                ? null
-                : () => widget.onChanged(widget.value + widget.step),
-          ),
-        ],
+        ),
       );
     }
-    return glassView(estimatedSize: const Size(160, 44));
+    return glassView(
+      estimatedSize: Size(150, control.size.minimumDimension),
+      gesture: GlassGesture.tap,
+    );
+  }
+
+  int _nextValue(int delta) {
+    var next = widget.value + delta;
+    if (widget.min case final int minimum when next < minimum) next = minimum;
+    if (widget.max case final int maximum when next > maximum) next = maximum;
+    return next;
   }
 }

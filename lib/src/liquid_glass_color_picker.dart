@@ -2,22 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'glass_platform_view.dart';
+import 'liquid_glass_style.dart';
 
-const String _kColorPickerViewType = 'flutter_native_view/glass_color_picker';
+const String _kColorPickerViewType = 'liquid_glass_native/color_picker';
 
-/// A native SwiftUI ColorPicker with Liquid Glass styling on iOS 26+.
-///
-/// On non-iOS platforms it falls back to a button that opens a simple Flutter
-/// color dialog.
+/// A controlled system SwiftUI color picker.
 class LiquidGlassColorPicker extends StatefulWidget {
   const LiquidGlassColorPicker({
     super.key,
     required this.value,
     required this.onChanged,
+    this.supportsOpacity = true,
+    this.controlStyle,
+    this.semanticLabel,
   });
 
   final Color value;
-  final ValueChanged<Color> onChanged;
+  final ValueChanged<Color>? onChanged;
+  final bool supportsOpacity;
+  final LiquidGlassControlStyle? controlStyle;
+  final String? semanticLabel;
 
   @override
   State<LiquidGlassColorPicker> createState() => _LiquidGlassColorPickerState();
@@ -32,91 +36,147 @@ class _LiquidGlassColorPickerState extends State<LiquidGlassColorPicker>
   bool get measuresSize => true;
 
   @override
-  Map<String, dynamic> buildParams() => <String, dynamic>{
-        'color': widget.value.toARGB32(),
-      };
+  Map<String, Object?> buildParams() {
+    final LiquidGlassControlStyle control = resolveControlStyle(
+      context,
+      widget.controlStyle,
+    );
+    return <String, Object?>{
+      'value': widget.value.toARGB32(),
+      'supportsOpacity': widget.supportsOpacity,
+      'enabled': widget.onChanged != null,
+      'accessibilityLabel': widget.semanticLabel,
+      ...encodeControlStyle(control),
+    };
+  }
 
   @override
-  Future<dynamic> handleCall(MethodCall call) async {
-    if (call.method == 'onChanged') {
-      final int argb = call.arguments as int;
-      widget.onChanged(Color.fromARGB(
-        (argb >> 24) & 0xFF,
-        (argb >> 16) & 0xFF,
-        (argb >> 8) & 0xFF,
-        argb & 0xFF,
-      ));
+  Future<Object?> handleCall(MethodCall call) async {
+    if (call.method == 'onChanged' && call.arguments is num) {
+      final int argb = (call.arguments as num).toInt();
+      dispatchControlledNativeState(<String, Object?>{
+        'value': argb,
+      }, () => widget.onChanged?.call(Color(argb)));
     }
     return null;
   }
 
   @override
-  void didUpdateWidget(LiquidGlassColorPicker oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Color is the only prop and it changes continuously while dragging the
-    // wheel, so use the lightweight `setValue` instead of a full re-measure.
-    if (oldWidget.value != widget.value) {
-      channel?.invokeMethod<void>('setValue', widget.value.toARGB32());
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final LiquidGlassControlStyle control = resolveControlStyle(
+      context,
+      widget.controlStyle,
+    );
     if (!isGlassPlatform) {
-      return FilledButton.icon(
-        icon: Icon(Icons.palette, color: widget.value),
-        label: Text(widget.value.toARGB32().toRadixString(16)),
-        onPressed: () async {
-          final Color? picked = await showDialog<Color>(
-            context: context,
-            builder: (BuildContext ctx) {
-              return SimpleDialog(
-                title: const Text('Pick a color'),
-                children: <Widget>[
-                  for (final Color c in _presets)
-                    SimpleDialogOption(
-                      onPressed: () => Navigator.of(ctx).pop(c),
-                      child: Row(
-                        children: <Widget>[
-                          Container(
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              color: c,
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: Colors.grey),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text('#${c.toARGB32().toRadixString(16).padLeft(8, '0')}'),
-                        ],
-                      ),
-                    ),
-                ],
-              );
-            },
-          );
-          if (picked != null && picked != widget.value) {
-            widget.onChanged(picked);
-          }
-        },
+      return applyFallbackControlStyle(
+        controlStyle: control,
+        enabled: widget.onChanged != null,
+        child: FilledButton.icon(
+          onPressed: widget.onChanged == null ? null : _showFallback,
+          icon: Icon(Icons.palette, color: widget.value),
+          label: Text(
+            '#${widget.value.toARGB32().toRadixString(16).padLeft(8, '0')}',
+          ),
+          style: FilledButton.styleFrom(
+            foregroundColor: control.foregroundColor,
+            backgroundColor: control.tintColor,
+            minimumSize: Size(
+              control.size.minimumDimension,
+              control.size.minimumDimension,
+            ),
+          ),
+        ),
       );
     }
-    return glassView(estimatedSize: const Size(60, 44));
+    return glassView(
+      estimatedSize: Size(60, control.size.minimumDimension),
+      gesture: GlassGesture.eager,
+    );
+  }
+
+  Future<void> _showFallback() async {
+    Color selected = widget.value;
+    final Color? picked = await showDialog<Color>(
+      context: context,
+      builder: (BuildContext context) => StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) => AlertDialog(
+          title: const Text('Pick a color'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: <Widget>[
+                    for (final Color color in _fallbackColors)
+                      InkWell(
+                        onTap: () => setState(() {
+                          selected = color.withValues(
+                            alpha: widget.supportsOpacity ? selected.a : 1,
+                          );
+                        }),
+                        borderRadius: BorderRadius.circular(6),
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: color,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color:
+                                  (color.toARGB32() & 0x00FFFFFF) ==
+                                      (selected.toARGB32() & 0x00FFFFFF)
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Colors.grey,
+                              width: 2,
+                            ),
+                          ),
+                          child: const SizedBox.square(dimension: 32),
+                        ),
+                      ),
+                  ],
+                ),
+                if (widget.supportsOpacity) ...<Widget>[
+                  const SizedBox(height: 16),
+                  Text('Opacity ${(selected.a * 100).round()}%'),
+                  Slider(
+                    value: selected.a,
+                    onChanged: (double alpha) => setState(
+                      () => selected = selected.withValues(alpha: alpha),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(selected),
+              child: const Text('Done'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (picked != null && picked != widget.value) {
+      widget.onChanged?.call(picked);
+    }
   }
 }
 
-const List<Color> _presets = <Color>[
-  Color(0xFFFF0000),
-  Color(0xFF00FF00),
-  Color(0xFF0000FF),
-  Color(0xFFFFFF00),
-  Color(0xFFFF00FF),
-  Color(0xFF00FFFF),
+const List<Color> _fallbackColors = <Color>[
+  Color(0xFFFF3B30),
+  Color(0xFFFF9500),
+  Color(0xFFFFCC00),
+  Color(0xFF34C759),
+  Color(0xFF00C7BE),
+  Color(0xFF007AFF),
+  Color(0xFF5856D6),
+  Color(0xFFAF52DE),
+  Color(0xFFFF2D55),
   Color(0xFFFFFFFF),
   Color(0xFF000000),
-  Color(0xFF808080),
-  Color(0xFFFF6E7F),
-  Color(0xFF6C63FF),
-  Color(0xFF00C853),
 ];

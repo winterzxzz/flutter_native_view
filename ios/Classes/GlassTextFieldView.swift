@@ -2,135 +2,163 @@ import Flutter
 import SwiftUI
 import UIKit
 
-// MARK: - Factory
+private struct GlassTextFieldConfiguration {
+  var text: String
+  let placeholder: String
+  let obscureText: Bool
+  let enabled: Bool
+  let isSearch: Bool
+  let keyboardType: String
+  let capitalization: String
+  let submitAction: String
+  let autocorrect: Bool
+  let accessibilityLabel: String?
+  let style: GlassStyleConfiguration
+  let controlStyle: GlassControlStyleConfiguration
 
-final class GlassTextFieldViewFactory: NSObject, FlutterPlatformViewFactory {
-  private let messenger: FlutterBinaryMessenger
-  init(messenger: FlutterBinaryMessenger) {
-    self.messenger = messenger
-    super.init()
+  init(arguments: GlassArguments) {
+    text = arguments.string("text", default: "")
+    placeholder = arguments.string("placeholder", default: "")
+    obscureText = arguments.bool("obscureText")
+    enabled = arguments.bool("enabled", default: true)
+    isSearch = arguments.bool("isSearch")
+    keyboardType = arguments.string("keyboardType", default: "text")
+    capitalization = arguments.string("capitalization", default: "sentences")
+    submitAction = arguments.string("submitAction", default: "done")
+    autocorrect = arguments.bool("autocorrect", default: true)
+    accessibilityLabel = arguments.string("accessibilityLabel")
+    style = GlassStyleConfiguration(arguments: arguments)
+    controlStyle = GlassControlStyleConfiguration(arguments: arguments)
   }
-  func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol {
-    FlutterStandardMessageCodec.sharedInstance()
+
+  var keyboard: UIKeyboardType {
+    switch keyboardType {
+    case "emailAddress": return .emailAddress
+    case "number": return .numberPad
+    case "decimal": return .decimalPad
+    case "phone": return .phonePad
+    case "url": return .URL
+    default: return .default
+    }
   }
-  func create(withFrame frame: CGRect, viewIdentifier viewId: Int64, arguments args: Any?)
-    -> FlutterPlatformView
-  {
-    GlassTextFieldPlatformView(
-      frame: frame, viewId: viewId,
-      args: args as? [String: Any] ?? [:], messenger: messenger)
+
+  var textCapitalization: TextInputAutocapitalization {
+    switch capitalization {
+    case "none": return .never
+    case "words": return .words
+    case "characters": return .characters
+    default: return .sentences
+    }
+  }
+
+  var submitLabel: SubmitLabel {
+    switch submitAction {
+    case "go": return .go
+    case "next": return .next
+    case "search": return .search
+    case "send": return .send
+    default: return .done
+    }
   }
 }
 
-// MARK: - Platform view
-
-final class GlassTextFieldPlatformView: NSObject, FlutterPlatformView {
-  private let container = UIView()
-  private let channel: FlutterMethodChannel
-  private let model: GlassTextFieldModel
-  private var host: UIViewController?
-
-  init(frame: CGRect, viewId: Int64, args: [String: Any], messenger: FlutterBinaryMessenger) {
-    channel = FlutterMethodChannel(
-      name: "\(FlutterNativeViewPlugin.textFieldViewType)/\(viewId)", binaryMessenger: messenger)
-    model = GlassTextFieldModel(args: args)
-    container.backgroundColor = .clear
-
-    super.init()
-
-    model.onChanged = { [weak channel] text in
-      channel?.invokeMethod("onChanged", arguments: text)
-    }
-    model.onSubmitted = { [weak channel] text in
-      channel?.invokeMethod("onSubmitted", arguments: text)
-    }
-
-    if #available(iOS 16.0, *) {
-      let hosting = UIHostingController(rootView: GlassTextFieldRoot(model: model))
-      hosting.view.backgroundColor = .clear
-      hosting.view.frame = container.bounds
-      hosting.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-      container.addSubview(hosting.view)
-      host = hosting
-    }
-
-    channel.setMethodCallHandler { [weak self] call, result in
-      guard let self = self else { result(nil); return }
-      switch call.method {
-      case "setText":
-        if let text = call.arguments as? String { self.model.text = text }
-        result(nil)
-      default:
-        result(FlutterMethodNotImplemented)
-      }
-    }
-  }
-
-  func view() -> UIView { container }
-}
-
-// MARK: - SwiftUI
-
-final class GlassTextFieldModel: ObservableObject {
-  @Published var text: String
-  @Published var placeholder: String
-  @Published var obscureText: Bool
-  @Published var tint: UIColor?
-  @Published var respectAccessibility: Bool
+private final class GlassTextFieldModel: ObservableObject {
+  @Published var configuration: GlassTextFieldConfiguration
   var onChanged: ((String) -> Void)?
   var onSubmitted: ((String) -> Void)?
 
-  init(args: [String: Any]) {
-    text = args["text"] as? String ?? ""
-    placeholder = args["placeholder"] as? String ?? ""
-    obscureText = args["obscureText"] as? Bool ?? false
-    tint = GlassColor.fromARGB(args["tint"] as? Int)
-    respectAccessibility = args["respectAccessibility"] as? Bool ?? true
+  init(arguments: GlassArguments) {
+    configuration = GlassTextFieldConfiguration(arguments: arguments)
+  }
+
+  func apply(_ arguments: GlassArguments) {
+    configuration = GlassTextFieldConfiguration(arguments: arguments)
+  }
+
+  func setTextFromUser(_ text: String) {
+    configuration.text = text
+    onChanged?(text)
   }
 }
 
-@available(iOS 16.0, *)
-struct GlassTextFieldRoot: View {
+@available(iOS 15.0, *)
+private struct GlassTextFieldRoot: View {
   @ObservedObject var model: GlassTextFieldModel
-  @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
-  private func shape() -> RoundedRectangle {
-    RoundedRectangle(cornerRadius: 12, style: .continuous)
-  }
-
-  var body: some View {
-    field
-      .onSubmit { model.onSubmitted?(model.text) }
-      .onChange(of: model.text) { newValue in model.onChanged?(newValue) }
-      .padding(.horizontal, 14)
-      .padding(.vertical, 10)
-      .background(background)
+  private var text: Binding<String> {
+    Binding(
+      get: { model.configuration.text },
+      set: model.setTextFromUser)
   }
 
   @ViewBuilder
   private var field: some View {
-    if model.obscureText {
-      SecureField(model.placeholder, text: $model.text)
+    if model.configuration.obscureText {
+      SecureField(model.configuration.placeholder, text: text)
     } else {
-      TextField(model.placeholder, text: $model.text)
+      TextField(model.configuration.placeholder, text: text)
     }
   }
 
-  @ViewBuilder
-  private var background: some View {
-    let solid = GlassAccessibility.solidFallback(
-      respect: model.respectAccessibility, reduceTransparency: reduceTransparency)
-    if !solid, #available(iOS 26.0, *) {
-      shape().fill(.clear).glassEffect(resolvedGlass(), in: shape())
-    } else {
-      shape().fill(Color(uiColor: model.tint ?? .secondarySystemBackground))
+  var body: some View {
+    HStack(spacing: 8) {
+      if model.configuration.isSearch {
+        Image(systemName: "magnifyingglass")
+          .accessibilityHidden(true)
+      }
+      field
+        .keyboardType(model.configuration.keyboard)
+        .textInputAutocapitalization(model.configuration.textCapitalization)
+        .submitLabel(model.configuration.submitLabel)
+        .disableAutocorrection(!model.configuration.autocorrect)
+        .onSubmit { model.onSubmitted?(model.configuration.text) }
     }
+    .padding(.horizontal, 14)
+    .frame(minHeight: minimumHeight)
+    .modifier(
+      GlassEffectModifier(
+        style: model.configuration.style,
+        solidFallbackColor: .secondarySystemBackground))
+    .modifier(GlassControlStyleModifier(style: model.configuration.controlStyle))
+    .disabled(!model.configuration.enabled)
+    .opacity(
+      model.configuration.enabled ? 1 : model.configuration.controlStyle.disabledOpacity)
+    .accessibilityLabel(
+      model.configuration.accessibilityLabel.map(Text.init)
+        ?? Text(model.configuration.placeholder))
   }
 
-  @available(iOS 26.0, *)
-  private func resolvedGlass() -> Glass {
-    var glass = Glass.regular
-    if let tint = model.tint { glass = glass.tint(Color(uiColor: tint).opacity(0.5)) }
-    return glass
+  private var minimumHeight: CGFloat {
+    switch model.configuration.controlStyle.size {
+    case .compact: return 36
+    case .regular: return 44
+    case .large: return 52
+    }
+  }
+}
+
+enum GlassTextFieldView {
+  static func make(
+    frame: CGRect,
+    viewId: Int64,
+    arguments: GlassArguments,
+    messenger: FlutterBinaryMessenger
+  ) -> FlutterPlatformView {
+    let model = GlassTextFieldModel(arguments: arguments)
+    let host = GlassPlatformViewHost(
+      frame: frame,
+      viewType: FlutterNativeViewPlugin.textFieldViewType,
+      viewId: viewId,
+      messenger: messenger,
+      rootView: AnyView(GlassTextFieldRoot(model: model)),
+      fallbackSize: CGSize(width: 240, height: 44),
+      onUpdate: { [weak model] next in
+        model?.apply(next)
+        return false
+      })
+    host.applyInterfaceStyle(arguments)
+    model.onChanged = { [weak host] text in host?.emit("onChanged", arguments: text) }
+    model.onSubmitted = { [weak host] text in host?.emit("onSubmitted", arguments: text) }
+    return host
   }
 }

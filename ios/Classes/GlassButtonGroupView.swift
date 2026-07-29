@@ -2,165 +2,122 @@ import Flutter
 import SwiftUI
 import UIKit
 
-// MARK: - Factory
-
-final class GlassButtonGroupViewFactory: NSObject, FlutterPlatformViewFactory {
-  private let messenger: FlutterBinaryMessenger
-  init(messenger: FlutterBinaryMessenger) {
-    self.messenger = messenger
-    super.init()
-  }
-  func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol {
-    FlutterStandardMessageCodec.sharedInstance()
-  }
-  func create(withFrame frame: CGRect, viewIdentifier viewId: Int64, arguments args: Any?)
-    -> FlutterPlatformView
-  {
-    GlassButtonGroupPlatformView(
-      frame: frame, viewId: viewId,
-      args: args as? [String: Any] ?? [:], messenger: messenger)
-  }
-}
-
-// MARK: - Platform view
-
-final class GlassButtonGroupPlatformView: NSObject, FlutterPlatformView {
-  private let container = UIView()
-  private let channel: FlutterMethodChannel
-  private let model: GlassButtonGroupModel
-  private var host: UIViewController?
-
-  init(frame: CGRect, viewId: Int64, args: [String: Any], messenger: FlutterBinaryMessenger) {
-    channel = FlutterMethodChannel(
-      name: "\(FlutterNativeViewPlugin.buttonGroupViewType)/\(viewId)", binaryMessenger: messenger)
-    model = GlassButtonGroupModel(args: args)
-    container.backgroundColor = .clear
-    super.init()
-
-    model.onPressed = { [weak channel] id in
-      channel?.invokeMethod("onPressed", arguments: id)
-    }
-
-    if #available(iOS 16.0, *) {
-      let hosting = UIHostingController(rootView: GlassButtonGroupRoot(model: model))
-      hosting.view.backgroundColor = .clear
-      hosting.view.frame = container.bounds
-      hosting.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-      container.addSubview(hosting.view)
-      host = hosting
-    }
-
-    channel.setMethodCallHandler { [weak self] call, result in
-      guard let self = self else { result(nil); return }
-      switch call.method {
-      case "getIntrinsicSize":
-        result(self.intrinsicSize())
-      case "updateConfig":
-        self.model.apply(args: call.arguments as? [String: Any] ?? [:])
-        DispatchQueue.main.async { result(self.intrinsicSize()) }
-      default:
-        result(FlutterMethodNotImplemented)
-      }
-    }
-  }
-
-  private func intrinsicSize() -> [String: Double] {
-    guard let host = host else { return ["width": 200, "height": 44] }
-    // Use the hosting controller's ideal sizing; .compressedSize truncates SwiftUI
-    // Text to zero width, which makes labels disappear.
-    let unbounded = CGSize(
-      width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
-    if #available(iOS 16.0, *), let hosting = host as? UIHostingController<GlassButtonGroupRoot> {
-      let size = hosting.sizeThatFits(in: unbounded)
-      return ["width": Double(ceil(size.width)), "height": Double(ceil(size.height))]
-    }
-    let view = host.view!
-    view.setNeedsLayout()
-    view.layoutIfNeeded()
-    let size = view.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
-    return ["width": Double(size.width), "height": Double(size.height)]
-  }
-
-  func view() -> UIView { container }
-}
-
-// MARK: - Model
-
-struct GroupButtonItem {
+private struct GlassButtonGroupItem: Identifiable {
   let id: String
   let label: String?
-  let sfSymbol: String?
+  let symbol: String?
+  let enabled: Bool
+  let accessibilityLabel: String?
+  let style: GlassStyleConfiguration
+  let controlStyle: GlassControlStyleConfiguration
+
+  init(arguments: GlassArguments) {
+    id = arguments.string("id", default: "")
+    label = arguments.string("label")
+    symbol = arguments.string("symbol")
+    enabled = arguments.bool("enabled", default: true)
+    accessibilityLabel = arguments.string("accessibilityLabel")
+    style = GlassStyleConfiguration(arguments: arguments)
+    controlStyle = GlassControlStyleConfiguration(arguments: arguments)
+  }
 }
 
-final class GlassButtonGroupModel: ObservableObject {
-  @Published var buttons: [GroupButtonItem] = []
-  @Published var spacing: CGFloat = 8
+private struct GlassButtonGroupConfiguration {
+  let items: [GlassButtonGroupItem]
+  let spacing: CGFloat
+
+  init(arguments: GlassArguments) {
+    items = arguments.items("items").map(GlassButtonGroupItem.init)
+    spacing = CGFloat(max(0, min(arguments.double("spacing", default: 8), 1_000)))
+  }
+}
+
+private final class GlassButtonGroupModel: ObservableObject {
+  @Published var configuration: GlassButtonGroupConfiguration
   var onPressed: ((String) -> Void)?
 
-  init(args: [String: Any]) {
-    apply(args: args)
+  init(arguments: GlassArguments) {
+    configuration = GlassButtonGroupConfiguration(arguments: arguments)
   }
 
-  func apply(args: [String: Any]) {
-    if let items = args["buttons"] as? [[String: Any]] {
-      buttons = items.map { d in
-        GroupButtonItem(
-          id: d["id"] as? String ?? "",
-          label: d["label"] as? String,
-          sfSymbol: d["sfSymbol"] as? String
-        )
-      }
-    }
-    if let s = args["spacing"] as? Double {
-      spacing = CGFloat(s)
-    }
+  func apply(_ arguments: GlassArguments) {
+    configuration = GlassButtonGroupConfiguration(arguments: arguments)
   }
 }
 
-// MARK: - SwiftUI
-
-@available(iOS 16.0, *)
-struct GlassButtonGroupRoot: View {
+@available(iOS 15.0, *)
+private struct GlassButtonGroupRoot: View {
   @ObservedObject var model: GlassButtonGroupModel
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-  var body: some View {
+  @ViewBuilder
+  private func label(for item: GlassButtonGroupItem) -> some View {
+    HStack(spacing: 6) {
+      if let symbol = item.symbol { Image(systemName: symbol) }
+      if let label = item.label { Text(label) }
+    }
+    .font(.system(size: 16, weight: .semibold))
+    .padding(.horizontal, 16)
+    .frame(minHeight: item.controlStyle.size == .compact ? 36 : item.controlStyle.size == .large ? 52 : 44)
+  }
+
+  @ViewBuilder
+  private func button(for item: GlassButtonGroupItem) -> some View {
+    let button = Button(action: { model.onPressed?(item.id) }) {
+      label(for: item)
+    }
+    .modifier(GlassButtonShapeModifier(shape: item.style.shape))
+    .modifier(GlassControlStyleModifier(style: item.controlStyle))
+    .tint(item.style.tint.map { Color(uiColor: $0) })
+    .disabled(!item.enabled)
+    .opacity(item.enabled ? 1 : item.controlStyle.disabledOpacity)
+    .accessibilityLabel(
+      item.accessibilityLabel.map(Text.init) ?? Text(item.label ?? "Button"))
+
     if #available(iOS 26.0, *) {
-      GlassEffectContainer(spacing: 8) {
-        HStack(spacing: model.spacing) {
-          ForEach(model.buttons, id: \.id) { item in
-            Button(action: { model.onPressed?(item.id) }) {
-              buttonLabel(for: item)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .contentShape(Capsule())
-                .glassEffect(Glass.regular.interactive(), in: Capsule())
-            }
-            .buttonStyle(.plain)
-          }
-        }
-      }
+      button.buttonStyle(.glass(item.style.glass(reduceMotion: reduceMotion)))
     } else {
-      HStack(spacing: model.spacing) {
-        ForEach(model.buttons, id: \.id) { item in
-          Button(action: { model.onPressed?(item.id) }) {
-            buttonLabel(for: item)
-              .padding(.horizontal, 16)
-              .padding(.vertical, 10)
-          }
-          .buttonStyle(.borderedProminent)
-        }
-      }
+      button.buttonStyle(.bordered)
     }
   }
 
   @ViewBuilder
-  private func buttonLabel(for item: GroupButtonItem) -> some View {
-    if let symbol = item.sfSymbol {
-      Label(item.label ?? "", systemImage: symbol)
-        .font(.system(size: 15, weight: .semibold))
+  var body: some View {
+    if #available(iOS 26.0, *) {
+      GlassEffectContainer(spacing: model.configuration.spacing) {
+        HStack(spacing: model.configuration.spacing) {
+          ForEach(model.configuration.items) { item in button(for: item) }
+        }
+      }
     } else {
-      Text(item.label ?? "")
-        .font(.system(size: 15, weight: .semibold))
+      HStack(spacing: model.configuration.spacing) {
+        ForEach(model.configuration.items) { item in button(for: item) }
+      }
     }
+  }
+}
+
+enum GlassButtonGroupView {
+  static func make(
+    frame: CGRect,
+    viewId: Int64,
+    arguments: GlassArguments,
+    messenger: FlutterBinaryMessenger
+  ) -> FlutterPlatformView {
+    let model = GlassButtonGroupModel(arguments: arguments)
+    let host = GlassPlatformViewHost(
+      frame: frame,
+      viewType: FlutterNativeViewPlugin.buttonGroupViewType,
+      viewId: viewId,
+      messenger: messenger,
+      rootView: AnyView(GlassButtonGroupRoot(model: model)),
+      fallbackSize: CGSize(width: 220, height: 44),
+      onUpdate: { [weak model] next in
+        model?.apply(next)
+        return true
+      })
+    host.applyInterfaceStyle(arguments)
+    model.onPressed = { [weak host] id in host?.emit("onPressed", arguments: id) }
+    return host
   }
 }
