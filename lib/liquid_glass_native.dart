@@ -22,6 +22,8 @@ export 'src/liquid_glass_progress_view.dart';
 export 'src/liquid_glass_search_bar.dart';
 export 'src/liquid_glass_sheet.dart';
 export 'src/liquid_glass_segmented.dart';
+export 'src/shader/liquid_glass.dart'
+    show LiquidGlass, LiquidGlassView, LiquidGlassStyle;
 export 'src/liquid_glass_slider.dart';
 export 'src/liquid_glass_stepper.dart';
 export 'src/liquid_glass_switch.dart';
