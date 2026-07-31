@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0
+
+- New: cross-platform shader-based `LiquidGlass` and `LiquidGlassView` with
+  configurable refraction, chromatic aberration, tint, highlights, and press
+  interaction.
+- New: bundled fragment shader and standalone shader demo entrypoint.
+
 ## 0.2.0
 
 - Refactor: shared `GlassPlatformView` base class — fixes lifecycle bugs and
