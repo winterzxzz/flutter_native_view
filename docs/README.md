@@ -1,31 +1,32 @@
 # Documentation Map
 
-This directory holds the project harness and any product contract derived from a
-future user-provided spec.
+Start with the smallest authoritative surface.
 
-## Main Files
+## Current Product
 
-- `HARNESS.md`: how humans and agents collaborate.
-- `FEATURE_INTAKE.md`: how prompts become tiny, normal, or high-risk work.
-- `ARCHITECTURE.md`: architecture discovery and boundary rules.
-- `TEST_MATRIX.md`: legacy proof map; current proof status is queried with
-  `scripts/bin/harness-cli query matrix`.
-- `HARNESS_BACKLOG.md`: legacy improvement list; current improvement records
-  are stored with `scripts/bin/harness-cli backlog`.
-- `GLOSSARY.md`: shared terms.
+- Root `README.md`: widget catalog, platform behavior, requirements, and usage.
+- `ARCHITECTURE.md`: Dart/native plugin boundaries and proof commands.
+- `LIQUID_GLASS_BUILD_GUIDE.md`: native build and integration guidance.
+- `superpowers/specs/`: design history for the Liquid Glass implementation.
+- `product/`: consumer product contract when a behavior needs a focused doc.
+- `decisions/`: lasting choices future work must inherit.
+- `plans/`: one durable working-memory document for work that needs it.
+- `templates/`: optional decision, plan, runbook, and Harness-improvement
+  structures.
 
-## Folders
+## Harness
 
-- `product/`: current product truth, empty until a spec is derived.
-- `stories/`: feature packets and backlog.
-- `decisions/`: durable decisions and tradeoffs.
-- `demo/`: concrete walkthroughs that show how the harness transforms input
-  into agent-ready work.
-- `templates/`: reusable spec-intake, story, plan, decision, and validation
-  formats.
+- `HARNESS.md`: installed core and consumer boundary.
+- `WORKFLOW.md`: request shape, planning, judgment, operation, validation, and
+  completion.
+- `plans/`: durable plans for work that spans sessions or needs recovery.
 
-## Current State
+## Authority Boundary
 
-Harness v0 exists before implementation. These docs define how the project will
-grow; they do not imply that app code, tests, CI, or deployment automation exist
-yet.
+The consumer's README, product docs, architecture, code, tests, CI, runtime
+signals, and application behavior remain authoritative. Harness does not
+overwrite them with upstream product assumptions.
+
+The former SQLite control plane, story packets, trace matrix, and compatibility
+documents are historical and remain recoverable through Git history rather than
+remaining active sources of truth.

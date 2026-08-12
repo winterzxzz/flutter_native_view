@@ -52,19 +52,28 @@ When adding a new widget:
 <!-- HARNESS:BEGIN -->
 ## Harness
 
-This repo uses Harness. Before work, read:
+Start with the requested outcome, then use the repository as the system of
+record. Read `docs/WORKFLOW.md` and only relevant product, design, plan, code,
+and validation material.
 
-- `README.md`
-- `docs/HARNESS.md`
-- `docs/FEATURE_INTAKE.md`
-- `docs/ARCHITECTURE.md`
-- `docs/CONTEXT_RULES.md`
-- `docs/TOOL_REGISTRY.md`
-- `scripts/bin/harness-cli query matrix` on macOS/Linux, or `.\scripts\bin\harness-cli.exe query matrix` on Windows
+- Answers, explanations, reviews, diagnoses, plans, and status reports are
+  read-only. Inspect only what is needed and do not mutate repository or Harness
+  state.
+- For a bounded change, use an ephemeral plan: inspect the affected behavior and
+  proof, implement, and validate. No control-plane operation is required.
+- Create or update one file under `docs/plans/active/` when work spans sessions,
+  needs coordination, has meaningful dependencies, or requires recovery steps.
+  Move it to `docs/plans/completed/` only after validation.
+- Before editing, identify repository authority for each new externally
+  observable policy. If materially different choices remain open, stop before
+  edits; configurable defaults are not authority.
+- Report reusable agent friction. Change guidance, tools, runbooks, or validation
+  for that purpose only when explicitly asked to use `$improve-harness`.
+- Also pause when product intent remains ambiguous, recovery is difficult,
+  validation is weakened, or authority is insufficient.
+- Claim completion only with relevant executable or observable evidence. Report
+  the outcome, important changes, validation, and unresolved risks.
 
-Use the Rust Harness CLI at `scripts/bin/harness-cli` on macOS/Linux or
-`scripts/bin/harness-cli.exe` on Windows as the main operational tool. Before a
-step that could use an external tool, run `scripts/bin/harness-cli query tools
---capability <name> --status present` to see what is equipped; an absent
-capability is a clean skip.
+Harness has no task database or orchestration lifecycle. Use repository-owned
+plans and behavior-level proof; do not create parallel control-plane state.
 <!-- HARNESS:END -->
