@@ -8,8 +8,32 @@ topics:
   - liquid-glass
   - ios
   - cupertino
-  - native
+  - glassmorphism
   - ui
+
+# Shown in the pub.dev screenshot carousel; the first one is the search-result
+# thumbnail. Captured from example/ on an iOS 26.5 simulator.
+screenshots:
+  - description: 'Native Liquid Glass buttons with SF Symbols and tints on iOS 26.'
+    path: screenshots/pub_thumb.webp
+  - description: 'Buttons, tab bar, switches, date picker and the shader glass lens.'
+    path: screenshots/hero.webp
+  - description: 'LiquidGlassTabBar - native iOS 26 tab bar with badges and a search accessory.'
+    path: screenshots/tab_bar.webp
+  - description: 'LiquidGlassButton - native glass buttons with leading/trailing SF Symbols.'
+    path: screenshots/buttons.webp
+  - description: 'LiquidGlassSwitch - native SwiftUI toggles inside glass cards.'
+    path: screenshots/switch.webp
+  - description: 'LiquidGlassDatePicker - native SwiftUI date pickers.'
+    path: screenshots/date_picker.webp
+  - description: 'LiquidGlassContainer - Flutter content layered on native glass panels.'
+    path: screenshots/container.webp
+  - description: 'LiquidGlassSlider - native SwiftUI sliders on Liquid Glass.'
+    path: screenshots/slider.webp
+  - description: 'LiquidGlass shader lens - cross-platform refraction and highlights.'
+    path: screenshots/shader_glass.webp
+  - description: 'Example gallery app listing every widget demo.'
+    path: screenshots/gallery.webp
 
 environment:
   sdk: ^3.11.0
