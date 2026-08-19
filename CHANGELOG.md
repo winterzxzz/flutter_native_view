@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1
+
+- Docs: rewritten README with a widget screenshot gallery, platform support
+  matrix, and FAQ.
+- Meta: add a pub.dev screenshot carousel captured from the example app on
+  iOS 26, and swap the `native` topic for `glassmorphism`.
+- No library or plugin code changes; identical runtime behavior to 0.3.0.
+
 ## 0.3.0
 
 - New: cross-platform shader-based `LiquidGlass` and `LiquidGlassView` with
