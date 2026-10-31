@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- New: `TabItem.iconPng` — give `LiquidGlassTabBar` tabs your own icons as a
+  PNG (drawn at 3x), e.g. a Flutter `IconData` rendered to an image. The native
+  bar uses it as a template image, so selected/unselected tinting still works;
+  it takes precedence over `sfSymbol`, and the Material fallback shows it too.
+
 ## 0.3.1
 
 - Docs: rewritten README with a widget screenshot gallery, platform support

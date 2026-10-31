@@ -35,7 +35,17 @@ struct GlassTabBarConfig {
   struct Tab {
     let label: String
     let sfSymbol: String
+    let iconPng: Data?
     let badge: String?
+
+    /// The tab's icon: the PNG when given (a 3x template image, so the bar
+    /// tints it like a symbol), else the SF Symbol.
+    var image: UIImage? {
+      if let iconPng, let image = UIImage(data: iconPng, scale: 3) {
+        return image.withRenderingMode(.alwaysTemplate)
+      }
+      return UIImage(systemName: sfSymbol)
+    }
   }
 
   let tabs: [Tab]
@@ -49,6 +59,7 @@ struct GlassTabBarConfig {
       Tab(
         label: $0["label"] as? String ?? "",
         sfSymbol: $0["sfSymbol"] as? String ?? "circle",
+        iconPng: ($0["iconPng"] as? FlutterStandardTypedData)?.data,
         badge: $0["badge"] as? String)
     }
     let requested = args["currentIndex"] as? Int ?? 0
@@ -119,8 +130,8 @@ final class GlassNativeTabBarView: UIView, UITabBarControllerDelegate {
       vc.view.backgroundColor = .clear
       vc.tabBarItem = UITabBarItem(
         title: tab.label,
-        image: UIImage(systemName: tab.sfSymbol),
-        selectedImage: UIImage(systemName: tab.sfSymbol))
+        image: tab.image,
+        selectedImage: tab.image)
       vc.tabBarItem.badgeValue = tab.badge
       return vc
     }

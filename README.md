@@ -196,7 +196,7 @@ All widgets are prefixed `LiquidGlass*` and exported from `package:liquid_glass_
 | `LiquidGlassContainer` | Glass panel; pass any Flutter `child` to layer content on glass. |
 | `LiquidGlassCard` | Padded, rounded glass card with optional `onTap`. |
 | `LiquidGlassNavigationBar` | Native top bar with title + leading/trailing `BarAction`s. |
-| `LiquidGlassTabBar` | Native tab bar with per-tab `badge`, search accessory and minimize-on-scroll. |
+| `LiquidGlassTabBar` | Native tab bar with per-tab `badge`, search accessory and minimize-on-scroll. Icons are SF Symbols or your own PNGs (`iconPng`). |
 | `LiquidGlassToolbar` | Native bottom toolbar of `BarAction`s. |
 
 ### Feedback
@@ -339,6 +339,46 @@ The native widgets fall back to Material equivalents so your code compiles and r
 <details>
 <summary><strong>Why do I need the iOS 26 SDK if my minimum is iOS 14?</strong></summary>
 Swift must be able to <em>compile</em> the <code>glassEffect</code> calls, even though they're only <em>executed</em> on iOS 26+. Any Xcode that ships the iOS 26 SDK works.
+</details>
+
+<details>
+<summary><strong>Can the tab bar use my Flutter icons instead of SF Symbols?</strong></summary>
+
+Yes. Give a <code>TabItem</code> an <code>iconPng</code> — a PNG drawn at 3x — and the native bar uses it as a template image, so it's still tinted like a symbol (selected and unselected colors). It takes precedence over <code>sfSymbol</code>, and the Material fallback shows it too. To use any <code>IconData</code> (Material, Cupertino, an icon font), render it to a PNG once:
+
+```dart
+import 'dart:ui' as ui;
+
+Future<Uint8List> iconToPng(IconData icon, {double size = 22}) async {
+  const scale = 3.0; // what TabItem.iconPng expects
+  final side = size * scale;
+  final recorder = ui.PictureRecorder();
+  final painter = TextPainter(
+    textDirection: TextDirection.ltr,
+    text: TextSpan(
+      text: String.fromCharCode(icon.codePoint),
+      style: TextStyle(
+        fontFamily: icon.fontFamily,
+        package: icon.fontPackage,
+        fontSize: side,
+        color: Colors.black, // any color: the bar tints the template
+      ),
+    ),
+  )..layout();
+  painter.paint(
+    Canvas(recorder),
+    Offset((side - painter.width) / 2, (side - painter.height) / 2),
+  );
+  final image = await recorder
+      .endRecording()
+      .toImage(side.ceil(), side.ceil());
+  final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+  image.dispose();
+  return bytes!.buffer.asUint8List();
+}
+
+// TabItem(label: 'Home', iconPng: await iconToPng(Icons.home_rounded))
+```
 </details>
 
 <details>

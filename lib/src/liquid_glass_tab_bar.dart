@@ -64,6 +64,7 @@ class TabItem {
   const TabItem({
     required this.label,
     this.sfSymbol,
+    this.iconPng,
     this.badge,
   });
 
@@ -72,6 +73,14 @@ class TabItem {
 
   /// Optional SF Symbol for the tab icon.
   final String? sfSymbol;
+
+  /// Optional PNG for the tab icon, drawn at 3x scale — e.g. a Flutter
+  /// [Icon] rendered to an image, so the tab bar can show the app's own
+  /// icons instead of SF Symbols.
+  ///
+  /// It's used as a template image, so the bar still tints it (selected and
+  /// unselected colors). Takes precedence over [sfSymbol] when both are set.
+  final Uint8List? iconPng;
 
   /// Optional badge text shown on the tab (e.g. `'3'` or `'!'`). When `null`,
   /// no badge is shown.
@@ -94,6 +103,7 @@ class _LiquidGlassTabBarState extends State<LiquidGlassTabBar>
           .map((TabItem item) => <String, dynamic>{
                 'label': item.label,
                 'sfSymbol': item.sfSymbol,
+                'iconPng': item.iconPng,
                 'badge': item.badge,
               })
           .toList(growable: false),
@@ -152,9 +162,11 @@ class _LiquidGlassTabBarState extends State<LiquidGlassTabBar>
         onDestinationSelected: widget.onTap,
         destinations: widget.items
             .map((TabItem item) => NavigationDestination(
-                  icon: item.sfSymbol != null
-                      ? const Icon(Icons.abc)
-                      : const Icon(Icons.circle),
+                  icon: item.iconPng != null
+                      ? Image.memory(item.iconPng!, width: 24, height: 24)
+                      : item.sfSymbol != null
+                          ? const Icon(Icons.abc)
+                          : const Icon(Icons.circle),
                   label: item.label,
                 ))
             .toList(growable: false),
