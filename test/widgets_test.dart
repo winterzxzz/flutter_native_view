@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:liquid_glass_native/liquid_glass_native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -255,6 +258,31 @@ void main() {
       ),
     );
     expect(find.byType(LiquidGlassTabBar), findsOneWidget);
+  });
+
+  testWidgets('LiquidGlassTabBar fallback shows iconPng',
+      (WidgetTester tester) async {
+    // A 1x1 PNG.
+    final Uint8List png = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: LiquidGlassTabBar(
+            items: <TabItem>[
+              TabItem(label: 'A', iconPng: png),
+              const TabItem(label: 'B', sfSymbol: 'tray'),
+            ],
+            currentIndex: 0,
+            onTap: (int i) {},
+          ),
+        ),
+      ),
+    );
+    expect(find.byType(Image), findsOneWidget);
+    expect(find.text('A'), findsOneWidget);
+    expect(find.text('B'), findsOneWidget);
   });
 
   testWidgets('LiquidGlassNavigationBar fallback renders',
